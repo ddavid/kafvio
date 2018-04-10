@@ -27,3 +27,8 @@ Thumbs.db
 # CMake #
 cmake-build-debug/
 CMakeLists.txt
+build/
+*.weights
+*.mp4
+augmented_training/
+*.avi

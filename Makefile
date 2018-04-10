@@ -1,9 +1,9 @@
-GPU=0
-CUDNN=0
-OPENCV=0
+GPU=1
+CUDNN=1
+OPENCV=1
 DEBUG=0
-OPENMP=0
-LIBSO=0
+OPENMP=1
+LIBSO=1
 
 ARCH= -gencode arch=compute_30,code=sm_30 \
       -gencode arch=compute_35,code=sm_35 \
@@ -12,6 +12,9 @@ ARCH= -gencode arch=compute_30,code=sm_30 \
 	  -gencode arch=compute_61,code=[sm_61,compute_61]
 
 OS := $(shell uname)
+
+#GTX 980
+# ARCH= -gencode arch=compute_52, code=[sm_52, compute_52]
 
 # Tesla V100
 # ARCH= -gencode arch=compute_70,code=[sm_70,compute_70]
@@ -102,8 +105,8 @@ CFLAGS+= -fPIC
 $(LIBNAMESO): $(OBJS) src/yolo_v2_class.hpp src/yolo_v2_class.cpp
 	$(CPP) -shared -std=c++11 -fvisibility=hidden -DYOLODLL_EXPORTS $(COMMON) $(CFLAGS) $(OBJS) src/yolo_v2_class.cpp -o $@ $(LDFLAGS)
 	
-$(APPNAMESO): $(LIBNAMESO) src/yolo_v2_class.hpp src/yolo_console_dll.cpp
-	$(CPP) -std=c++11 $(COMMON) $(CFLAGS) -o $@ src/yolo_console_dll.cpp $(LDFLAGS) -L ./ -l:$(LIBNAMESO)
+$(APPNAMESO): $(LIBNAMESO) src/yolo_v2_class.hpp src/main.cpp #src/yolo_console_dll.cpp
+	$(CPP) -std=c++11 $(COMMON) $(CFLAGS) -o $@ src/main.cpp  $(LDFLAGS) -L ./ -l:$(LIBNAMESO)
 endif
 
 $(EXEC): $(OBJS)

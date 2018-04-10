@@ -861,6 +861,7 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
 		find_replace(labelpath, ".jpg", ".txt", labelpath);
 		find_replace(labelpath, ".JPEG", ".txt", labelpath);
 		find_replace(labelpath, ".png", ".txt", labelpath);
+                find_replace(labelpath, ".JPG", ".txt", labelpath);
 		int num_labels = 0;
 		box_label *truth = read_boxes(labelpath, &num_labels);
 		//printf(" new path: %s \n", labelpath);

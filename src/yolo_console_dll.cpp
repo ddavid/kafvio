@@ -17,7 +17,12 @@
 // To use tracking - uncomment the following line. Tracking is supported only by OpenCV 3.x
 //#define TRACK_OPTFLOW
 
+#define OPENCV
+#define GPU
+
 #include "yolo_v2_class.hpp"	// imported functions from DLL
+
+#include <pylon/PylonIncludes.h>  // Pylon SDK
 
 #ifdef OPENCV
 #include <opencv2/opencv.hpp>			// C++
@@ -222,9 +227,9 @@ std::vector<std::string> objects_names_from_file(std::string const filename) {
 
 int main(int argc, char *argv[])
 {
-	std::string  names_file = "data/voc.names";
-	std::string  cfg_file = "cfg/yolo-voc.cfg";
-	std::string  weights_file = "yolo-voc.weights";
+	std::string  names_file = "../data/small-cones.names";
+	std::string  cfg_file = "../cfg/mm-test_nano-304-yolo-voc.cfg";
+	std::string  weights_file = "../mm-test_nano-304-yolo-voc_final.weights";
 	std::string filename;
 
 	if (argc > 4) {	//voc.names yolo-voc.cfg yolo-voc.weights test.mp4		
@@ -250,7 +255,7 @@ int main(int argc, char *argv[])
 	while (true) 
 	{		
 		std::cout << "input image or video filename: ";
-		if(filename.size() == 0) std::cin >> filename;
+		if(filename.size() == 0) std::cin >> filename; std::cout << "File Name: " << filename << "\n";
 		if (filename.size() == 0) break;
 		
 		try {
@@ -448,21 +453,55 @@ int main(int argc, char *argv[])
 				
 			}
 			else {	// image file
-				cv::Mat mat_img = cv::imread(filename);
-				std::vector<bbox_t> result_vec = detector.detect(mat_img);
-				result_vec = detector.tracking_id(result_vec);	// comment it - if track_id is not required
-				draw_boxes(mat_img, result_vec, obj_names);
-				cv::imshow("window name", mat_img);
-				cv::waitKey(3);	// 3 or 16ms
-				show_console_result(result_vec, obj_names);
+                                std::cout << "I'm an image\n";
+                                Pylon::PylonAutoInitTerm autoInitTerm;
+                                std::cout << "I'm an image\n";
+                                try
+                                {
+                                    std::cout << "I'm trying\n";
+                                    std::cout << "Creating Camera" << std::endl;
+                                    Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
+
+                                    std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+
+                                    Pylon::CImageFormatConverter formatConverter;
+                                    formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
+                                    camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
+                                    
+                                    Pylon::CPylonImage pylonImage;
+
+                                    Pylon::CGrabResultPtr ptrGrabResult;
+
+                                    while( camera.IsGrabbing())
+                                    {
+                                        camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
+
+                                        if( ptrGrabResult->GrabSucceeded())
+                                        {
+                                            formatConverter.Convert(pylonImage, ptrGrabResult);
+                                            cv::Mat mat_img = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+				            std::vector<bbox_t> result_vec = detector.detect(mat_img);
+				            result_vec = detector.tracking_id(result_vec);	// comment it - if track_id is not required
+				            //draw_boxes(mat_img, result_vec, obj_names);
+				            //cv::imshow("window name", mat_img);
+				            //cv::waitKey(3);	// 3 or 16ms
+				            show_console_result(result_vec, obj_names);
+                                            //std::vector<bbox_t> result_vec = detector.detect(img);
+			                    //detector.free_image(mat_img);
+			                    //show_console_result(result_vec, obj_names);
+                                        }
+                                        else std::cout << ptrGrabResult->GetErrorDescription() << std::endl;
+                                    }
+                                }
+                                catch (Pylon::GenericException &e)
+                                {
+                                    std::cerr << e.GetDescription() << std::endl;
+                                }
 			}
 #else
 			//std::vector<bbox_t> result_vec = detector.detect(filename);
 
-			auto img = detector.load_image(filename);
-			std::vector<bbox_t> result_vec = detector.detect(img);
-			detector.free_image(img);
-			show_console_result(result_vec, obj_names);
+			//auto img = detector.load_image(filename);
 #endif			
 		}
 		catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
