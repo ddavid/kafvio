@@ -5,7 +5,7 @@ DEBUG=0
 OPENMP=1
 LIBSO=1
 
-ARCH= -gencode arch=compute_30,code=sm_30 \
+#ARCH= -gencode arch=compute_30,code=sm_30 \
       -gencode arch=compute_35,code=sm_35 \
       -gencode arch=compute_50,code=[sm_50,compute_50] \
       -gencode arch=compute_52,code=[sm_52,compute_52] \
@@ -29,8 +29,8 @@ OS := $(shell uname)
 # ARCH= -gencode arch=compute_51,code=[sm_51,compute_51]
 
 # For Jetson Tx2 or Drive-PX2 uncomment:
-# ARCH= -gencode arch=compute_62,code=[sm_62,compute_62]
-
+ARCH= -gencode arch=compute_62,code=[sm_62,compute_62] \
+      -gencode arch=compute_52, code=[sm_52, compute_52]
 
 VPATH=./src/
 EXEC=darknet
