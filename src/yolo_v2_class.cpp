@@ -176,7 +176,7 @@ YOLODLL_API std::vector<bbox_t> Detector::detect(image_t img, float thresh, bool
 {	
 	detector_gpu_t &detector_gpu = *static_cast<detector_gpu_t *>(detector_gpu_ptr.get());
 	network &net = detector_gpu.net;
-	std::cout << "\nIM TRYING TO DETECT SHIT HERE\n";
+	//std::cout << "\nIM TRYING TO DETECT SHIT HERE\n";
 	int old_gpu_index;
 #ifdef GPU
 	cudaGetDevice(&old_gpu_index);

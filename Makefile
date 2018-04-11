@@ -29,8 +29,7 @@ OS := $(shell uname)
 # ARCH= -gencode arch=compute_51,code=[sm_51,compute_51]
 
 # For Jetson Tx2 or Drive-PX2 uncomment:
-ARCH= -gencode arch=compute_62,code=[sm_62,compute_62] \
-      -gencode arch=compute_52, code=[sm_52, compute_52]
+ARCH= -gencode arch=compute_62,code=[sm_62,compute_62] # \ -gencode arch=compute_52, code=[sm_52, compute_52]
 
 VPATH=./src/
 EXEC=darknet

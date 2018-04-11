@@ -321,24 +321,29 @@ int main(int argc, char *argv[])
                                     if( ptrGrabResult->GrabSucceeded())
                                     {
                                         formatConverter.Convert(pylonImage, ptrGrabResult);
-                                        cur_frame = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetHeight(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
-                                    }
+					cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+                                        cur_frame = temp;                                    	
+					std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
+				    }
                                 }
                                 
                                 //cv::VideoCapture cap(filename); cap >> cur_frame;
 				int const video_fps = 60; //cap.get(CV_CAP_PROP_FPS);
                                 
-                                /*int video_fps;
+                                int cam_video_fps;
                                 if (GenApi::IsAvailable(camera.GetNodeMap().GetNode("ResultingFrameRateAbs")))
                                 {
-                                    video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
+                                    cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
                                 }
-                                else video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
-                                */
+                                else cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
+				
+				std::cout << "Cam FPS: " << cam_video_fps << std::endl;                                
+
 				cv::Size const frame_size = cur_frame.size();
+				std::cout << frame_size.width << " " << frame_size.height << std::endl;
 				cv::VideoWriter output_video;
 				if (save_output_videofile)
-					output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
+					output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, cam_video_fps), frame_size, true);
 
 				while (!cur_frame.empty()) 
 				{
@@ -356,8 +361,9 @@ int main(int argc, char *argv[])
                                                 if( ptrGrabResult->GrabSucceeded())
                                                 {
                                                     formatConverter.Convert(pylonImage, ptrGrabResult);
-                                                    cap_frame = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetHeight(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
-                                                }
+                                                    cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+
+						    cap_frame = temp;                                                }
                                             }
                                         });
 					++cur_time_extrapolate;
@@ -462,10 +468,17 @@ int main(int argc, char *argv[])
 							cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 						}
 						draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
-						//show_console_result(result_vec, obj_names);
+						show_console_result(result_vec, obj_names);
+						
+						// Make Results always be on top of Console
+						std::cout << "\033[2J";
+   		    				std::cout << "\033[1;1H";		
+
 						large_preview.draw(cur_frame);
 
-						cv::imshow("window name", cur_frame);
+						//cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
+
+						cv::imshow("OpenCV Display Window", cur_frame);
 						int key = cv::waitKey(3);	// 3 or 16ms
 						if (key == 'f') show_small_boxes = !show_small_boxes;
 						if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
