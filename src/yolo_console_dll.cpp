@@ -224,6 +224,15 @@ std::vector<std::string> objects_names_from_file(std::string const filename) {
 	return file_lines;
 }
 
+/*double GetFrameRate(Pylon::CInstantCamera cam)
+{
+    if (GenApi::IsAvailable(cam.GetNodeMap().GetNode("ResultingFrameRateAbs")))
+    {
+        return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
+    }
+    else return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
+}*/
+
 
 int main(int argc, char *argv[])
 {
@@ -247,6 +256,10 @@ int main(int argc, char *argv[])
 	auto obj_names = objects_names_from_file(names_file);
 	std::string out_videofile = "result.avi";
 	bool const save_output_videofile = true;
+        
+        // Initialize Pylon
+        Pylon::PylonAutoInitTerm autoInitTerm;
+
 #ifdef TRACK_OPTFLOW
 	Tracker_optflow tracker_flow;
 	detector.wait_stream = true;
@@ -260,7 +273,20 @@ int main(int argc, char *argv[])
 		
 		try {
 #ifdef OPENCV
-			extrapolate_coords_t extrapolate_coords;
+			// Pylon Stuff
+                        //
+                        Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
+                        std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+
+                        Pylon::CImageFormatConverter formatConverter;
+                        formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
+                        camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
+
+                        Pylon::CPylonImage pylonImage;
+
+                        Pylon::CGrabResultPtr ptrGrabResult;
+                        
+                        extrapolate_coords_t extrapolate_coords;
 			bool extrapolate_flag = false;
 			float cur_time_extrapolate = 0, old_time_extrapolate = 0;
 			preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
@@ -288,8 +314,27 @@ int main(int argc, char *argv[])
 				std::mutex mtx;
 				std::condition_variable cv_detected, cv_pre_tracked;
 				std::chrono::steady_clock::time_point steady_start, steady_end;
-				cv::VideoCapture cap(filename); cap >> cur_frame;
-				int const video_fps = cap.get(CV_CAP_PROP_FPS);
+				
+                                if(camera.IsGrabbing())
+                                {
+                                    camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
+                                    if( ptrGrabResult->GrabSucceeded())
+                                    {
+                                        formatConverter.Convert(pylonImage, ptrGrabResult);
+                                        cur_frame = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetHeight(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+                                    }
+                                }
+                                
+                                //cv::VideoCapture cap(filename); cap >> cur_frame;
+				int const video_fps = 60; //cap.get(CV_CAP_PROP_FPS);
+                                
+                                /*int video_fps;
+                                if (GenApi::IsAvailable(camera.GetNodeMap().GetNode("ResultingFrameRateAbs")))
+                                {
+                                    video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
+                                }
+                                else video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
+                                */
 				cv::Size const frame_size = cur_frame.size();
 				cv::VideoWriter output_video;
 				if (save_output_videofile)
@@ -303,7 +348,18 @@ int main(int argc, char *argv[])
 						++fps_cap_counter;
 						cur_frame = cap_frame.clone();
 					}
-					t_cap = std::thread([&]() { cap >> cap_frame; });
+					t_cap = std::thread([&]() 
+                                        { 
+                                            if(camera.IsGrabbing())
+                                            {
+                                                camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
+                                                if( ptrGrabResult->GrabSucceeded())
+                                                {
+                                                    formatConverter.Convert(pylonImage, ptrGrabResult);
+                                                    cap_frame = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetHeight(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+                                                }
+                                            }
+                                        });
 					++cur_time_extrapolate;
 
 					// swap result bouned-boxes and input-frame
@@ -452,13 +508,13 @@ int main(int argc, char *argv[])
 					}
 				
 			}
-			else {	// image file
-                                std::cout << "I'm an image\n";
+			else {	// Single image Pylon test
+                                std::cout << "Starting Pylon Test\n";
                                 Pylon::PylonAutoInitTerm autoInitTerm;
-                                std::cout << "I'm an image\n";
+                                //std::cout << "I'm an image\n";
                                 try
                                 {
-                                    std::cout << "I'm trying\n";
+                                    //std::cout << "I'm trying\n";
                                     std::cout << "Creating Camera" << std::endl;
                                     Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
 
@@ -472,7 +528,7 @@ int main(int argc, char *argv[])
 
                                     Pylon::CGrabResultPtr ptrGrabResult;
 
-                                    while( camera.IsGrabbing())
+                                    if( camera.IsGrabbing())
                                     {
                                         camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
 
@@ -500,8 +556,11 @@ int main(int argc, char *argv[])
 			}
 #else
 			//std::vector<bbox_t> result_vec = detector.detect(filename);
-
-			//auto img = detector.load_image(filename);
+                        
+			auto img = detector.load_image(filename);
+                        std::vector<bbox_t> result_vec = detector.detect(img);
+                        detector.free_image(img);
+                        show_console_result(result_vec, obj_names);
 #endif			
 		}
 		catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
