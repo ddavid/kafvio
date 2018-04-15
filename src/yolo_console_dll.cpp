@@ -20,7 +20,8 @@
 #define OPENCV
 #define GPU
 
-#include "yolo_v2_class.hpp"	// imported functions from DLL
+#include "yolo_v2_class.hpp"	  // imported functions from DLL
+#include "object.hpp"		      // FSD Object
 
 #include <pylon/PylonIncludes.h>  // Pylon SDK
 
@@ -44,6 +45,8 @@
 #pragma comment(lib, "opencv_imgproc" OPENCV_VERSION ".lib")
 #pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
 #endif	// CV_VERSION_EPOCH
+
+
 
 class track_kalman {
 public:
@@ -100,9 +103,6 @@ public:
 	}
 
 };
-
-
-
 
 class extrapolate_coords_t {
 public:
@@ -233,6 +233,88 @@ std::vector<std::string> objects_names_from_file(std::string const filename) {
     else return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
 }*/
 
+enum Distance_Strats {
+	CONE_HEIGHT,
+	CONE_WIDTH
+};
+
+const object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strats strat )
+{	
+	// AOV calculated in 
+	// https://drive.google.com/open?id=1yfDZr2MJyqkEoziy0suvq2ejFtKxsR_Ukpk-Wdw1F5k
+
+	const double h_AOV 		  = 75.3937;
+	const double v_AOV 		  = 63.5316;
+
+	// All sensor and lens measures are in μm
+
+	const double focal_length  = 4000.0;
+	const double sensor_width  = 6182.4;
+	const double sensor_height = 4953.6;
+
+	// Cone measurements also in μm
+
+	const double small_cone_width  = 228000.0;
+	const double small_cone_height = 325000.0;
+
+	const double large_cone_width  = 285000.0;
+	const double large_cone_height = 505000.0; 
+
+	object_list_t *cones = object_list__new_default();
+
+	switch( strat )
+	{
+		case CONE_HEIGHT:
+
+			// Calculate Distances with cone height
+			for( bbox_t& box : boxes )
+			{	
+				const double height_on_sensor = box.h * sensor_height;
+				double perpendicular_distance;
+
+				if(box.obj_id > 2) {
+					perpendicular_distance = (large_cone_height * focal_length) / height_on_sensor;
+				}
+				else perpendicular_distance = (small_cone_height * focal_length) / height_on_sensor;
+
+				// Angles in FZModell-Koordinaten
+				double angle     = box.x * (- h_AOV) + ( h_AOV / 2);
+				double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2); 
+
+				object_t * temp;
+				*temp = object__new();
+				object__init( temp, perpendicular_distance, angle, angle_yaw, box.w, box.obj_id );
+				object_list__push_back_copy( cones, temp );
+			}
+			break;
+			
+		case CONE_WIDTH:
+
+			// Calculate Distances with cone width
+			for( bbox_t& box : boxes )
+			{
+				const double width_on_sensor = box.w * sensor_width;
+				double perpendicular_distance;
+
+				if(box.obj_id > 2) {
+					perpendicular_distance = (large_cone_width * focal_length) / width_on_sensor;
+				}
+				else perpendicular_distance = (small_cone_width * focal_length) / width_on_sensor;
+
+				// Angles in FZModell-Koordinaten
+				double angle     = box.x * (- h_AOV) + ( h_AOV / 2);
+				double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2); 
+
+				object_t * temp;
+				*temp = object__new();
+				object__init( temp, perpendicular_distance, angle, angle_yaw, box.w, box.obj_id );
+				object_list__push_back_copy( cones, temp );
+			}
+			break;
+	}
+		
+	return cones;
+}
 
 int main(int argc, char *argv[])
 {
@@ -274,19 +356,19 @@ int main(int argc, char *argv[])
 		try {
 #ifdef OPENCV
 			// Pylon Stuff
-                        //
-                        Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
-                        std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+            //
+            Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
+            std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
 
-                        Pylon::CImageFormatConverter formatConverter;
-                        formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
-                        camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
+            Pylon::CImageFormatConverter formatConverter;
+            formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
+            camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
 
-                        Pylon::CPylonImage pylonImage;
+            Pylon::CPylonImage pylonImage;
 
-                        Pylon::CGrabResultPtr ptrGrabResult;
-                        
-                        extrapolate_coords_t extrapolate_coords;
+            Pylon::CGrabResultPtr ptrGrabResult;
+            
+            extrapolate_coords_t extrapolate_coords;
 			bool extrapolate_flag = false;
 			float cur_time_extrapolate = 0, old_time_extrapolate = 0;
 			preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
@@ -315,27 +397,27 @@ int main(int argc, char *argv[])
 				std::condition_variable cv_detected, cv_pre_tracked;
 				std::chrono::steady_clock::time_point steady_start, steady_end;
 				
-                                if(camera.IsGrabbing())
-                                {
-                                    camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
-                                    if( ptrGrabResult->GrabSucceeded())
-                                    {
-                                        formatConverter.Convert(pylonImage, ptrGrabResult);
-					cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
-                                        cur_frame = temp;                                    	
-					std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
+                if(camera.IsGrabbing())
+                {
+                    camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
+                    if( ptrGrabResult->GrabSucceeded())
+                    {
+                        formatConverter.Convert(pylonImage, ptrGrabResult);
+						cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+                        cur_frame = temp;                                    	
+						std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
 				    }
-                                }
+                }
                                 
-                                //cv::VideoCapture cap(filename); cap >> cur_frame;
+                //cv::VideoCapture cap(filename); cap >> cur_frame;
 				int const video_fps = 60; //cap.get(CV_CAP_PROP_FPS);
                                 
-                                int cam_video_fps;
-                                if (GenApi::IsAvailable(camera.GetNodeMap().GetNode("ResultingFrameRateAbs")))
-                                {
-                                    cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
-                                }
-                                else cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
+	            int cam_video_fps;
+	            if (GenApi::IsAvailable(camera.GetNodeMap().GetNode("ResultingFrameRateAbs")))
+	            {
+	                cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
+	            }
+	            else cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
 				
 				std::cout << "Cam FPS: " << cam_video_fps << std::endl;                                
 
@@ -354,18 +436,19 @@ int main(int argc, char *argv[])
 						cur_frame = cap_frame.clone();
 					}
 					t_cap = std::thread([&]() 
-                                        { 
-                                            if(camera.IsGrabbing())
-                                            {
-                                                camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
-                                                if( ptrGrabResult->GrabSucceeded())
-                                                {
-                                                    formatConverter.Convert(pylonImage, ptrGrabResult);
-                                                    cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+                    { 
+                        if(camera.IsGrabbing())
+                        {
+                            camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
+                            if( ptrGrabResult->GrabSucceeded())
+                            {
+                                formatConverter.Convert(pylonImage, ptrGrabResult);
+                                cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
 
-						    cap_frame = temp;                                                }
-                                            }
-                                        });
+	    						cap_frame = temp;
+	    					}
+                        }
+                    });
 					++cur_time_extrapolate;
 
 					// swap result bouned-boxes and input-frame
@@ -468,6 +551,8 @@ int main(int argc, char *argv[])
 							cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 						}
 						draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+						
+
 						show_console_result(result_vec, obj_names);
 						
 						// Make Results always be on top of Console
@@ -522,50 +607,50 @@ int main(int argc, char *argv[])
 				
 			}
 			else {	// Single image Pylon test
-                                std::cout << "Starting Pylon Test\n";
-                                Pylon::PylonAutoInitTerm autoInitTerm;
-                                //std::cout << "I'm an image\n";
-                                try
-                                {
-                                    //std::cout << "I'm trying\n";
-                                    std::cout << "Creating Camera" << std::endl;
-                                    Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
+                std::cout << "Starting Pylon Test\n";
+                Pylon::PylonAutoInitTerm autoInitTerm;
+                //std::cout << "I'm an image\n";
+                try
+                {
+                    //std::cout << "I'm trying\n";
+                    std::cout << "Creating Camera" << std::endl;
+                    Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
 
-                                    std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+                    std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
 
-                                    Pylon::CImageFormatConverter formatConverter;
-                                    formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
-                                    camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
-                                    
-                                    Pylon::CPylonImage pylonImage;
+                    Pylon::CImageFormatConverter formatConverter;
+                    formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
+                    camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
+                    
+                    Pylon::CPylonImage pylonImage;
 
-                                    Pylon::CGrabResultPtr ptrGrabResult;
+                    Pylon::CGrabResultPtr ptrGrabResult;
 
-                                    if( camera.IsGrabbing())
-                                    {
-                                        camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
+                    if( camera.IsGrabbing())
+                    {
+                        camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
 
-                                        if( ptrGrabResult->GrabSucceeded())
-                                        {
-                                            formatConverter.Convert(pylonImage, ptrGrabResult);
-                                            cv::Mat mat_img = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+                        if( ptrGrabResult->GrabSucceeded())
+                        {
+                            formatConverter.Convert(pylonImage, ptrGrabResult);
+                            cv::Mat mat_img = cv::Mat(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
 				            std::vector<bbox_t> result_vec = detector.detect(mat_img);
 				            result_vec = detector.tracking_id(result_vec);	// comment it - if track_id is not required
 				            //draw_boxes(mat_img, result_vec, obj_names);
 				            //cv::imshow("window name", mat_img);
 				            //cv::waitKey(3);	// 3 or 16ms
 				            show_console_result(result_vec, obj_names);
-                                            //std::vector<bbox_t> result_vec = detector.detect(img);
-			                    //detector.free_image(mat_img);
-			                    //show_console_result(result_vec, obj_names);
-                                        }
-                                        else std::cout << ptrGrabResult->GetErrorDescription() << std::endl;
-                                    }
-                                }
-                                catch (Pylon::GenericException &e)
-                                {
-                                    std::cerr << e.GetDescription() << std::endl;
-                                }
+                            //std::vector<bbox_t> result_vec = detector.detect(img);
+		                    //detector.free_image(mat_img);
+		                    //show_console_result(result_vec, obj_names);
+                        }
+                        else std::cout << ptrGrabResult->GetErrorDescription() << std::endl;
+                    }
+                }
+                catch (Pylon::GenericException &e)
+                {
+                    std::cerr << e.GetDescription() << std::endl;
+                }
 			}
 #else
 			//std::vector<bbox_t> result_vec = detector.detect(filename);
