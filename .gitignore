@@ -24,6 +24,9 @@ Icon?
 Thumbs.db
 *.swp
 
+# Makefile fsd-train Jetson #
+Makefile
+
 # CMake #
 cmake-build-debug/
 CMakeLists.txt
