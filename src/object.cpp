@@ -30,7 +30,7 @@ object_t object__new(void)
 
 
 // initialize an Object -------------------------------------------------------
-void object__init(object_t * ob, double distance, double angle, double angle_yaw, double width, int type) 
+void object__init(object_t * ob, double distance, double angle, double width, int type) 
 {
 	ob->timestamp = 0;
 	ob->type      = type;

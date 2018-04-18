@@ -38,7 +38,7 @@
 typedef struct { 
   double distance; 
   double angle; 
-  double angle_yaw;
+  //double angle_yaw;
   double width; 
   int type; // 0 = yellow, 1 = blue, 2 = red, 3 = big red
   size_t timestamp; 
@@ -74,7 +74,7 @@ void object__init(
   object_t *ob,
   double distance,
   double angle,
-  double angle_yaw,
+  //double angle_yaw,
   double width,
   int type
 );
