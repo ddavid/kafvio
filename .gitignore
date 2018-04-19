@@ -29,7 +29,6 @@ Makefile
 
 # CMake #
 cmake-build-debug/
-CMakeLists.txt
 build/
 *.weights
 *.mp4

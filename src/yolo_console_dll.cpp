@@ -8,6 +8,7 @@
 #include <atomic>
 #include <mutex>              // std::mutex, std::unique_lock
 #include <condition_variable> // std::condition_variable
+#include <boost/program_options> //Nice argparser
 
 #ifdef _WIN32
 #define OPENCV
@@ -46,7 +47,7 @@
 #pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
 #endif	// CV_VERSION_EPOCH
 
-
+namespace po = boost::program_options;
 
 class track_kalman {
 public:
@@ -327,6 +328,18 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 	return cones;
 }
 
+po::options_description desc("Allowed options");
+desc.add_options()
+    ("help", "produce help message")
+    ("classes", po::value<std::string>(), ".txt or .list file with one class name per line")
+    ("config", "Darknet .cfg file")
+    ("weights", "Darknet .weights file")
+    ("video", "Video file to run detections on")
+    ("basler", po::value<int>(), "Run demo with Basler Cam if set to 1")
+    ("record", po::value<int>(), "Record openCV stream")
+    ("live_demo", po::value<int>(), "Show openCV stream")
+;
+
 int main(int argc, char *argv[])
 {
 	std::string  names_file = "../data/small-cones.names";
@@ -346,9 +359,12 @@ int main(int argc, char *argv[])
 	}
 	else if ((argc > 1) && (std::strcmp(demo_opt, argv[1]) == 0))
 	{	
-		pylon_demo = 0;
+	    std::cout << "Starting Pylon Demo" << std::endl;
+            pylon_demo = 1;
 	}   
 	else if (argc > 1) filename = argv[1];
+        
+        std::cout << "pylon_demo: " << pylon_demo << std::endl;
 
 	float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.20;
 
@@ -577,7 +593,7 @@ int main(int argc, char *argv[])
 			            // Test height distance estimation
 			            object_list_t * height_objects = object_list__new(result_vec.size());
 			            height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
-			            
+			            std::cout.precision(5); 
 			            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
 		   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
 			                    //draw_boxes(mat_img, result_vec, obj_names);
