@@ -87,12 +87,14 @@ endif()
 
 find_package(OpenCV REQUIRED)
 find_package(Threads)
+find_package(Boost COMPONENTS program_options REQUIRED)
 
 include_directories(
     ${OpenCV_INCLUDE_DIRS}
     ${CUDA_INCLUDE_DIRS}
     ${CUDNN_INCLUDE_DIRS}
     ${PYLON_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIR}
     src
 )
 
@@ -118,6 +120,7 @@ target_link_libraries(main
     ${PYLON_LIBRARIES} 
     ${CUDNN_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_LIBRARIES}
     darknet
     cuda 
     cudart 

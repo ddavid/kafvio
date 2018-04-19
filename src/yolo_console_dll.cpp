@@ -8,7 +8,7 @@
 #include <atomic>
 #include <mutex>              // std::mutex, std::unique_lock
 #include <condition_variable> // std::condition_variable
-#include <boost/program_options> //Nice argparser
+#include <boost/program_options.hpp> //Nice argparser
 
 #ifdef _WIN32
 #define OPENCV
@@ -244,13 +244,16 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 	// Dirty conversion before adjusting bbox_t
 
 	const double image_height = 1024.0; 
-	const double image_width  =	1280.0;
+	const double image_width  = 1280.0;
 
 	// AOV calculated in 
 	// https://drive.google.com/open?id=1yfDZr2MJyqkEoziy0suvq2ejFtKxsR_Ukpk-Wdw1F5k
-
-	const double h_AOV 		  = 75.3937;
-	const double v_AOV 		  = 63.5316;
+        // Degrees
+	//const double h_AOV 		  = 75.3937;
+	//const double v_AOV 		  = 63.5316;
+        // RADIANS
+        const double h_AOV         = 0.0229662;
+        const double v_AOV         = 0.0193528;
 
 	// All sensor and lens measures are in μm
 
@@ -277,22 +280,24 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 			// Calculate Distances with cone height
 			for( bbox_t& box : boxes )
 			{	
-				std::cout << "Trying the height" << std::endl;
-				std::cout << "Box Height: " << (box.h / image_height) << std::endl;
+				//std::cout << "Trying the height" << std::endl;
+				//std::cout << "Box Height: " << (box.h / image_height) << std::endl;
 				const double height_on_sensor = (box.h / image_height) * sensor_height;
 				double perpendicular_distance;
-
-				if(box.obj_id > 2) {
-					perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;
-				}
-				else perpendicular_distance = ((small_cone_height * focal_length) / height_on_sensor) / 1000000.0;
+                                double straight_distance;
 
 				// Angles in FZModell-Koordinaten
 				double angle     = box.x * (- h_AOV) + ( h_AOV / 2);
-				//double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2); 
+				//double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2);
+
+				if(box.obj_id > 2) perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;  
+				else  perpendicular_distance = ((small_cone_height * focal_length) / height_on_sensor) / 1000000.0;
+
+                                straight_distance = perpendicular_distance / std::cos( angle );
 
 				object_t temp = object__new();
-				object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
+				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
+                                object__init( &temp, straight_distance, angle, box.w, box.obj_id );
 				object_list__push_back_copy( cones, &temp );
 			}
 			break;
@@ -304,18 +309,20 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 			{
 				const double width_on_sensor = (box.w / image_width) * sensor_width;
 				double perpendicular_distance;
+                                double straight_distance;
 
-				if(box.obj_id > 2) {
-					perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
-				}
+                                // Angles in FZModell-Koordinaten
+				double angle     = box.x * (- h_AOV) + ( h_AOV / 2);
+				//double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2);
+				
+                                if(box.obj_id > 2) perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
 				else perpendicular_distance = ((small_cone_width * focal_length) / width_on_sensor) / 1000000.0;
 
-				// Angles in FZModell-Koordinaten
-				double angle     = box.x * (- h_AOV) + ( h_AOV / 2);
-				//double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2); 
+                                straight_distance = perpendicular_distance / std::cos( angle );
 
 				object_t temp = object__new();
-				object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
+				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
+                                object__init( &temp, straight_distance, angle, box.w, box.obj_id );
 				object_list__push_back_copy( cones, &temp );
 			}
 			break;
@@ -328,45 +335,43 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 	return cones;
 }
 
-po::options_description desc("Allowed options");
-desc.add_options()
-    ("help", "produce help message")
-    ("classes", po::value<std::string>(), ".txt or .list file with one class name per line")
-    ("config", "Darknet .cfg file")
-    ("weights", "Darknet .weights file")
-    ("video", "Video file to run detections on")
-    ("basler", po::value<int>(), "Run demo with Basler Cam if set to 1")
-    ("record", po::value<int>(), "Record openCV stream")
-    ("live_demo", po::value<int>(), "Show openCV stream")
-;
-
 int main(int argc, char *argv[])
-{
-	std::string  names_file = "../data/small-cones.names";
-	std::string  cfg_file = "../cfg/mm-test_nano-304-yolo-voc.cfg";
-	std::string  weights_file = "../mm-test_nano-304-yolo-voc_final.weights";
-	std::string filename;
+{      
+        std::string  names_file;
+	std::string  cfg_file;
+        std::string  weights_file;
+        std::string  filename;
+        int          pylon;
+        int          record_stream;
+        int          live_demo;
+        int          valid_test;
+        float        thresh;
 
-	const char * demo_opt = "pylon";
+        po::options_description desc("Allowed options");
+        desc.add_options()
+            ("help", "produce help message")
+            ("classes", po::value<std::string>(&names_file)->default_value("../data/small-cones.names"), ".txt or .list file with one class name per line")
+            ("config", po::value<std::string>(&cfg_file)->default_value("../cfg/mm-test_nano-304-yolo-voc.cfg"),  "Darknet .cfg file")
+            ("weights", po::value<std::string>(&weights_file)->default_value("../mm-test_nano-304-yolo-voc_final.weights"), "Darknet .weights file")
+            ("image_file", po::value<std::string>(&filename)->default_value("demo.jpg"), "Single Image file to run detection on")
+            ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
+            ("video_file", po::value<std::string>(&filename), "Single Image file to run detection on")
+            ("basler", po::value<int>(&pylon)->default_value(0), "Run demo with Basler Cam if set to 1")
+            ("record", po::value<int>(&record_stream)->default_value(0), "Record openCV stream")
+            ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
+            ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
+            ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
+        ;
 
-	int pylon_demo = 0;
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
 
-	if (argc > 4) {	//voc.names yolo-voc.cfg yolo-voc.weights test.mp4		
-		names_file = argv[1];
-		cfg_file = argv[2];
-		weights_file = argv[3];
-		filename = argv[4];
-	}
-	else if ((argc > 1) && (std::strcmp(demo_opt, argv[1]) == 0))
-	{	
-	    std::cout << "Starting Pylon Demo" << std::endl;
-            pylon_demo = 1;
-	}   
-	else if (argc > 1) filename = argv[1];
-        
-        std::cout << "pylon_demo: " << pylon_demo << std::endl;
-
-	float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.20;
+        if (argc == 1 || vm.count("help"))
+        {
+            std::cout << desc << "\n";
+            return 1;
+        }
 
 	Detector detector(cfg_file, weights_file);
 
@@ -385,7 +390,7 @@ int main(int argc, char *argv[])
 	while (true) 
 	{	
 
-		if(!pylon_demo)
+		if(!pylon)
 		{
 
 		std::cout << "input image or video filename: ";
@@ -596,8 +601,11 @@ int main(int argc, char *argv[])
 			            std::cout.precision(5); 
 			            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
 		   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
-			                    //draw_boxes(mat_img, result_vec, obj_names);
-	                    //cv::imwrite("res_" + line, mat_img);
+			            if(valid_test) 
+                                    {
+                                        draw_boxes(mat_img, result_vec, obj_names);
+	                                cv::imwrite("res_" + line, mat_img);
+                                    }
 	                }
 	            
 	        }
@@ -605,9 +613,14 @@ int main(int argc, char *argv[])
 	            cv::Mat mat_img = cv::imread(filename);
 	            std::vector<bbox_t> result_vec = detector.detect(mat_img);
 	            //result_vec = detector.tracking_id(result_vec);    // comment it - if track_id is not required
-	            draw_boxes(mat_img, result_vec, obj_names);
-	            cv::imshow("window name", mat_img);
-	            show_console_result(result_vec, obj_names);
+	            
+	            if(live_demo)
+                    { 
+                        draw_boxes(mat_img, result_vec, obj_names); 
+                        cv::imshow("window name", mat_img);
+	            }
+
+                    show_console_result(result_vec, obj_names);
 	            
 	            // Test width distance estimation
 	            object_list_t * width_objects = object_list__new(result_vec.size());
@@ -620,7 +633,7 @@ int main(int argc, char *argv[])
 	            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
    	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
 
-	            cv::waitKey(0);
+	            if(live_demo) cv::waitKey(0);
 	        }
 	#else
 	        //std::vector<bbox_t> result_vec = detector.detect(filename);
