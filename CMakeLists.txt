@@ -7,7 +7,18 @@ set_target_properties(darknet PROPERTIES
   IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/darknet.so"
 )
 
-set(DEBUG 0)
+## Adding DEBUG_MODE for Connector::util.h
+OPTION(DEBUG_MODE "Enables the DEBUG messages and -O0 flags" 1) 
+
+if(DEBUG_MODE)
+    message("DEBUG_MODE is ON")
+    add_definitions(-DDEBUG_MODE=1)
+else()
+    message("DEBUG_MODE is OFF")
+    add_definitions(-DDEBUG_MODE=0)
+endif()
+
+set(DEBUG 1)
 #set(GPU 1)
 set(PYLON 1)
 set(CUDNN 1)

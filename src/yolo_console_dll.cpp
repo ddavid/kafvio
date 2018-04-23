@@ -20,10 +20,11 @@
 #define OPENCV
 #define GPU
 
-#include "yolo_v2_class.hpp"	  // imported functions from DLL
-#include "object.hpp"		      // FSD Object
+#include "yolo_v2_class.hpp"	    // imported functions from DLL
+#include "object.hpp"		    // FSD Object
+#include "client.h"                 // Jussie & Alex: UDP/TCP Connector 
 
-#include <pylon/PylonIncludes.h>  // Pylon SDK
+#include <pylon/PylonIncludes.h>    // Pylon SDK
 
 #ifdef OPENCV
 #include <opencv2/opencv.hpp>			// C++
@@ -563,12 +564,18 @@ int main(int argc, char *argv[])
 	        else if (file_ext == "txt") {   // list of image files
 	            std::ifstream file(filename);
 	            if (!file.is_open()) std::cout << "File not found! \n";
-	            else 
-	                for (std::string line; file >> line;) {
-	                    std::cout << line << std::endl;
-	                    cv::Mat mat_img = cv::imread(line);
-	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	                    show_console_result(result_vec, obj_names);
+	            else
+                    {  
+	                    int port{4242};
+                            std::string ip {"127.0.0.1"};
+                            connector::client< connector::UDP > sender( port, ip );
+                            sender.init();
+
+                            for (std::string line; file >> line;) {
+	                        std::cout << line << std::endl;
+	                        cv::Mat mat_img = cv::imread(line);
+	                        std::vector<bbox_t> result_vec = detector.detect(mat_img);
+	                        show_console_result(result_vec, obj_names);
 
 	                    // Test width distance estimation
 			            object_list_t * width_objects = object_list__new(result_vec.size());
@@ -580,10 +587,22 @@ int main(int argc, char *argv[])
 			            
 			            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
 		   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
-			                    //draw_boxes(mat_img, result_vec, obj_names);
+
+                                    int list_size = width_objects->size;
+                                    for( int j = 0; j < list_size; j++)
+                                    {
+                                        // Send Obj with Width DistanceStrat
+                                        sender.send_udp< object_t >( width_objects->elements[( list_size - 1 )]);
+                                        //Send Obj with Height DistanceStrat
+                                        sender.send_udp< object_t >( height_objects->elements[( list_size - 1 )]);
+                                    }
+                                    free(width_objects);
+                                    free(height_objects);
+
+                                    //draw_boxes(mat_img, result_vec, obj_names);
 	                    //cv::imwrite("res_" + line, mat_img);
 	                }
-	            
+	            }
 	        }
 	        else {  // image file
 	            cv::Mat mat_img = cv::imread(filename);
