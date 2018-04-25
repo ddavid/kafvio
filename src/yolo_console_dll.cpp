@@ -21,10 +21,11 @@
 #define OPENCV
 #define GPU
 
-#include "yolo_v2_class.hpp"	  // imported functions from DLL
-#include "object.hpp"		      // FSD Object
+#include "yolo_v2_class.hpp"	    // imported functions from DLL
+#include "object.hpp"		    // FSD Object
+#include "client.h"                 // Jussie & Alex: UDP/TCP Connector 
 
-#include <pylon/PylonIncludes.h>  // Pylon SDK
+#include <pylon/PylonIncludes.h>    // Pylon SDK
 
 #ifdef OPENCV
 #include <opencv2/opencv.hpp>			// C++
@@ -298,6 +299,7 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 				object_t temp = object__new();
 				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
                                 object__init( &temp, straight_distance, angle, box.w, box.obj_id );
+
 				object_list__push_back_copy( cones, &temp );
 			}
 			break;
@@ -323,6 +325,7 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 				object_t temp = object__new();
 				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
                                 object__init( &temp, straight_distance, angle, box.w, box.obj_id );
+
 				object_list__push_back_copy( cones, &temp );
 			}
 			break;
@@ -341,10 +344,13 @@ int main(int argc, char *argv[])
 	std::string  cfg_file;
         std::string  weights_file;
         std::string  filename;
+        std::string  udp_ip;
         int          pylon;
         int          record_stream;
         int          live_demo;
         int          valid_test;
+        int          udp_port;
+        int          udp_test;
         float        thresh;
 
         po::options_description desc("Allowed options");
@@ -361,6 +367,10 @@ int main(int argc, char *argv[])
             ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
             ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
             ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
+            ("port", po::value<int>(&udp_port)->default_value(4242), "Set port to send objects to")
+            ("ip", po::value<std::string>(&udp_ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
+            ("udp_test", po::value<int>(&udp_test)->default_value(1), "If true, sends objects to specified ip:port")
+
         ;
 
         po::variables_map vm;
@@ -584,12 +594,16 @@ int main(int argc, char *argv[])
 	        else if (file_ext == "txt") {   // list of image files
 	            std::ifstream file(filename);
 	            if (!file.is_open()) std::cout << "File not found! \n";
-	            else 
-	                for (std::string line; file >> line;) {
-	                    std::cout << line << std::endl;
-	                    cv::Mat mat_img = cv::imread(line);
-	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	                    show_console_result(result_vec, obj_names);
+	            else
+                    {  
+                            connector::client< connector::UDP > sender( udp_port, udp_ip );
+                            sender.init();
+
+                            for (std::string line; file >> line;) {
+	                        std::cout << line << std::endl;
+	                        cv::Mat mat_img = cv::imread(line);
+	                        std::vector<bbox_t> result_vec = detector.detect(mat_img);
+	                        show_console_result(result_vec, obj_names);
 
 	                    // Test width distance estimation
 			            object_list_t * width_objects = object_list__new(result_vec.size());
@@ -601,13 +615,29 @@ int main(int argc, char *argv[])
 			            std::cout.precision(5); 
 			            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
 		   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
+
 			            if(valid_test) 
                                     {
                                         draw_boxes(mat_img, result_vec, obj_names);
 	                                cv::imwrite("res_" + line, mat_img);
                                     }
+
+                                    if(udp_test)
+                                    {
+                                        int list_size = width_objects->size;
+                                        for( int j = 0; j < list_size; j++)
+                                        {
+                                            // Send Obj with Width DistanceStrat
+                                            sender.send_udp< object_t >( width_objects->elements[( list_size - 1 )]);
+                                            //Send Obj with Height DistanceStrat
+                                            sender.send_udp< object_t >( height_objects->elements[( list_size - 1 )]);
+                                        }
+                                    }
+                                    
+                                    free(width_objects);
+                                    free(height_objects);
 	                }
-	            
+	            }
 	        }
 	        else {  // image file
 	            cv::Mat mat_img = cv::imread(filename);
