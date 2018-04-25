@@ -50,6 +50,11 @@
 
 namespace po = boost::program_options;
 
+enum Distance_Strategy {
+	CONE_HEIGHT,
+	CONE_WIDTH
+};
+
 class track_kalman {
 public:
 	cv::KalmanFilter kf;
@@ -180,66 +185,6 @@ public:
 
 };
 
-
-void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, 
-	int current_det_fps = -1, int current_cap_fps = -1)
-{
-	int const colors[6][3] = { { 1,0,1 },{ 0,0,1 },{ 0,1,1 },{ 0,1,0 },{ 1,1,0 },{ 1,0,0 } };
-
-	for (auto &i : result_vec) {
-		cv::Scalar color = obj_id_to_color(i.obj_id);
-		cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
-		if (obj_names.size() > i.obj_id) {
-			std::string obj_name = obj_names[i.obj_id];
-			if (i.track_id > 0) obj_name += " - " + std::to_string(i.track_id);
-			cv::Size const text_size = getTextSize(obj_name, cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, 2, 0);
-			int const max_width = (text_size.width > i.w + 2) ? text_size.width : (i.w + 2);
-			cv::rectangle(mat_img, cv::Point2f(std::max((int)i.x - 1, 0), std::max((int)i.y - 30, 0)), 
-				cv::Point2f(std::min((int)i.x + max_width, mat_img.cols-1), std::min((int)i.y, mat_img.rows-1)), 
-				color, CV_FILLED, 8, 0);
-			putText(mat_img, obj_name, cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(0, 0, 0), 2);
-		}
-	}
-	if (current_det_fps >= 0 && current_cap_fps >= 0) {
-		std::string fps_str = "FPS detection: " + std::to_string(current_det_fps) + "   FPS capture: " + std::to_string(current_cap_fps);
-		putText(mat_img, fps_str, cv::Point2f(10, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(50, 255, 0), 2);
-	}
-}
-#endif	// OPENCV
-
-
-void show_console_result(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names) {
-	for (auto &i : result_vec) {
-		if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
-		std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
-			<< ", w = " << i.w << ", h = " << i.h
-			<< std::setprecision(3) << ", prob = " << i.prob << std::endl;
-	}
-}
-
-std::vector<std::string> objects_names_from_file(std::string const filename) {
-	std::ifstream file(filename);
-	std::vector<std::string> file_lines;
-	if (!file.is_open()) return file_lines;
-	for(std::string line; getline(file, line);) file_lines.push_back(line);
-	std::cout << "object names loaded \n";
-	return file_lines;
-}
-
-/*double GetFrameRate(Pylon::CInstantCamera cam)
-{
-    if (GenApi::IsAvailable(cam.GetNodeMap().GetNode("ResultingFrameRateAbs")))
-    {
-        return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
-    }
-    else return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
-}*/
-
-enum Distance_Strategy {
-	CONE_HEIGHT,
-	CONE_WIDTH
-};
-
 object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat )
 {	
 	// Dirty conversion before adjusting bbox_t
@@ -338,6 +283,86 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 	return cones;
 }
 
+void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, 
+	int current_det_fps = -1, int current_cap_fps = -1)
+{
+	int const colors[6][3] = { { 1,0,1 },{ 0,0,1 },{ 0,1,1 },{ 0,1,0 },{ 1,1,0 },{ 1,0,0 } };
+
+	for (auto &i : result_vec) {
+		cv::Scalar color = obj_id_to_color(i.obj_id);
+		cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
+		if (obj_names.size() > i.obj_id) {
+			std::string obj_name = obj_names[i.obj_id];
+			if (i.track_id > 0) obj_name += " - " + std::to_string(i.track_id);
+			cv::Size const text_size = getTextSize(obj_name, cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, 2, 0);
+			int const max_width = (text_size.width > i.w + 2) ? text_size.width : (i.w + 2);
+			cv::rectangle(mat_img, cv::Point2f(std::max((int)i.x - 1, 0), std::max((int)i.y - 30, 0)), 
+				cv::Point2f(std::min((int)i.x + max_width, mat_img.cols-1), std::min((int)i.y, mat_img.rows-1)), 
+				color, CV_FILLED, 8, 0);
+			putText(mat_img, obj_name, cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(0, 0, 0), 2);
+		}
+	}
+	if (current_det_fps >= 0 && current_cap_fps >= 0) {
+		std::string fps_str = "FPS detection: " + std::to_string(current_det_fps) + "   FPS capture: " + std::to_string(current_cap_fps);
+		putText(mat_img, fps_str, cv::Point2f(10, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(50, 255, 0), 2);
+	}
+}
+#endif	// OPENCV
+
+
+void show_console_result(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names) {
+	for (auto &i : result_vec) {
+		if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
+		std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
+			<< ", w = " << i.w << ", h = " << i.h
+			<< std::setprecision(3) << ", prob = " << i.prob << std::endl;
+	}
+}
+
+void show_console_result_distances(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names) {
+	
+        int count = 1;
+        
+        // Width distance estimation
+        object_list_t * width_objects = object_list__new(result_vec.size());
+	width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
+        //Height distance estimation
+        object_list_t * height_objects = object_list__new(result_vec.size());
+        height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
+        
+        for (auto &i : result_vec) 
+        {
+	    if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
+	    std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
+	              << ", w = " << i.w << ", h = " << i.h
+		      << std::setprecision(3) << ", prob = " << i.prob 
+                      << ", distance_width = " << width_objects->elements[count].distance << std::setprecision(6) 
+                      << ", distance_height = " << height_objects->elements[count].distance << std::endl;
+                
+            count++;
+	}
+        free(width_objects);
+        free(height_objects);
+}
+
+std::vector<std::string> objects_names_from_file(std::string const filename) {
+	std::ifstream file(filename);
+	std::vector<std::string> file_lines;
+	if (!file.is_open()) return file_lines;
+	for(std::string line; getline(file, line);) file_lines.push_back(line);
+	std::cout << "object names loaded \n";
+	return file_lines;
+}
+
+/*double GetFrameRate(Pylon::CInstantCamera cam)
+{
+    if (GenApi::IsAvailable(cam.GetNodeMap().GetNode("ResultingFrameRateAbs")))
+    {
+        return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
+    }
+    else return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
+}*/
+
 int main(int argc, char *argv[])
 {      
         std::string  names_file;
@@ -361,9 +386,9 @@ int main(int argc, char *argv[])
             ("weights", po::value<std::string>(&weights_file)->default_value("../mm-test_nano-304-yolo-voc_final.weights"), "Darknet .weights file")
             ("image_file", po::value<std::string>(&filename)->default_value("demo.jpg"), "Single Image file to run detection on")
             ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
-            ("video_file", po::value<std::string>(&filename), "Single Image file to run detection on")
+            ("video_file", po::value<std::string>(&filename), "Single Video file to run detection on")
             ("basler", po::value<int>(&pylon)->default_value(0), "Run demo with Basler Cam if set to 1")
-            ("record", po::value<int>(&record_stream)->default_value(0), "Record openCV stream")
+            ("record", po::value<int>(&record_stream)->default_value(0), "Record openCV stream to .avi file")
             ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
             ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
             ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
@@ -386,8 +411,9 @@ int main(int argc, char *argv[])
 	Detector detector(cfg_file, weights_file);
 
 	auto obj_names = objects_names_from_file(names_file);
-	std::string out_videofile = "result.avi";
-	bool const save_output_videofile = true;
+        
+        std::string out_videofile = "result.avi";
+	
         
     // Initialize Pylon
     Pylon::PylonAutoInitTerm autoInitTerm;
@@ -442,8 +468,8 @@ int main(int argc, char *argv[])
 	            int const video_fps = cap.get(CV_CAP_PROP_FPS);
 	            cv::Size const frame_size = cur_frame.size();
 	            cv::VideoWriter output_video;
-	            if (save_output_videofile)
-	                output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
+                    // Stream Recording
+	            if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
 
 	            while (!cur_frame.empty()) 
 	            {
@@ -555,24 +581,31 @@ int main(int argc, char *argv[])
 	                        result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
 	                        cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 	                    }
-	                    draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
 	                    show_console_result(result_vec, obj_names);
-	                    large_preview.draw(cur_frame);
+                            // Make Results always be on top of Console
+			    std::cout << "\033[2J";
+	   		    std::cout << "\033[1;1H";
+                            
+                            if( live_demo )
+                            {
+                                draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+	                        large_preview.draw(cur_frame);
 
-	                    cv::imshow("window name", cur_frame);
-	                    int key = cv::waitKey(3);   // 3 or 16ms
-	                    if (key == 'f') show_small_boxes = !show_small_boxes;
-	                    if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
-	                    if (key == 'e') extrapolate_flag = !extrapolate_flag;
-	                    if (key == 27) { exit_flag = true; break; }
-
-	                    if (output_video.isOpened() && videowrite_ready) {
-	                        if (t_videowrite.joinable()) t_videowrite.join();
-	                        write_frame = cur_frame.clone();
-	                        videowrite_ready = false;
-	                        t_videowrite = std::thread([&]() { 
-	                             output_video << write_frame; videowrite_ready = true;
-	                        });
+	                        cv::imshow("window name", cur_frame);
+	                        int key = cv::waitKey(3);   // 3 or 16ms
+	                        if (key == 'f') show_small_boxes = !show_small_boxes;
+	                        if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
+	                        if (key == 'e') extrapolate_flag = !extrapolate_flag;
+	                        if (key == 27) { exit_flag = true; break; }
+                            }
+                            
+                            if (output_video.isOpened() && videowrite_ready) {
+	                    if (t_videowrite.joinable()) t_videowrite.join();
+	                    write_frame = cur_frame.clone();
+	                    videowrite_ready = false;
+	                    t_videowrite = std::thread([&]() { 
+	                    output_video << write_frame; videowrite_ready = true;
+	                    });
 	                    }
 	                }
 
@@ -603,9 +636,10 @@ int main(int argc, char *argv[])
 	                        std::cout << line << std::endl;
 	                        cv::Mat mat_img = cv::imread(line);
 	                        std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	                        show_console_result(result_vec, obj_names);
+	                        show_console_result_distances(result_vec, obj_names);
 
 	                    // Test width distance estimation
+                            /*
 			            object_list_t * width_objects = object_list__new(result_vec.size());
 			            width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
 			            
@@ -635,7 +669,7 @@ int main(int argc, char *argv[])
                                     }
                                     
                                     free(width_objects);
-                                    free(height_objects);
+                                    free(height_objects);*/
 	                }
 	            }
 	        }
@@ -751,8 +785,8 @@ int main(int argc, char *argv[])
 					cv::Size const frame_size = cur_frame.size();
 					std::cout << frame_size.width << " " << frame_size.height << std::endl;
 					cv::VideoWriter output_video;
-					if (save_output_videofile)
-						output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, cam_video_fps), frame_size, true);
+                                        // Record Stream
+					if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, cam_video_fps), frame_size, true);
 
 					while (!cur_frame.empty()) 
 					{
@@ -877,24 +911,25 @@ int main(int argc, char *argv[])
 								result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
 								cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 							}
-							draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
-							
-
 							show_console_result(result_vec, obj_names);
-							
 							// Make Results always be on top of Console
 							std::cout << "\033[2J";
-	   		    			std::cout << "\033[1;1H";		
+	   		    			        std::cout << "\033[1;1H";		
 
-							large_preview.draw(cur_frame);
+                                                        if ( live_demo )
+                                                        {
+                                                            draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+							    large_preview.draw(cur_frame);
 
-							//cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
+							    //cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
 
-							cv::imshow("OpenCV Display Window", cur_frame);
-							int key = cv::waitKey(3);	// 3 or 16ms
-							if (key == 'f') show_small_boxes = !show_small_boxes;
-							if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
-							if (key == 'e') extrapolate_flag = !extrapolate_flag;
+							    cv::imshow("OpenCV Display Window", cur_frame);
+							    int key = cv::waitKey(3);	// 3 or 16ms
+							    if (key == 'f') show_small_boxes = !show_small_boxes;
+							    if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
+							    if (key == 'e') extrapolate_flag = !extrapolate_flag;
+                                                        }
+                                                        
 
 							if (output_video.isOpened() && videowrite_ready) {
 								if (t_videowrite.joinable()) t_videowrite.join();
@@ -920,7 +955,8 @@ int main(int argc, char *argv[])
 					std::cout << "Video ended \n";
 				}
 			}
-		catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
+		catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
+                catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
 		catch (...) { std::cerr << "unknown exception \n"; getchar(); }
 		filename.clear();
 		}
