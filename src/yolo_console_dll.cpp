@@ -287,8 +287,8 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
                                 double direct_distance;
 
 				// Angles in FZModell-Koordinaten
-				double angle     = box.x * (- h_AOV) + ( h_AOV / 2.0);
-				//double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2); 
+				double angle     = ( box.x / cone_width ) * (- h_AOV) + ( h_AOV / 2.0);
+				//double angle_yaw = ( box.y / cone_height ) * (- v_AOV) + ( v_AOV / 2); 
 
 				if(box.obj_id > 2) {
 					perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;
@@ -314,8 +314,8 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
                                 double direct_distance;
 
 				// Angles in FZModell-Koordinaten
-				double angle     = box.x * (- h_AOV) + ( h_AOV / 2.0);
-				//double angle_yaw = box.y * (- v_AOV) + ( v_AOV / 2); 
+				double angle     = ( box.x / cone_width ) * (- h_AOV) + ( h_AOV / 2.0);
+				//double angle_yaw = ( box.y / cone_height ) * (- v_AOV) + ( v_AOV / 2); 
 
 				if(box.obj_id > 2) {
 					perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
