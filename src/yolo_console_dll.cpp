@@ -436,6 +436,24 @@ int main(int argc, char *argv[])
             std::cout << desc << "\n";
             return 1;
         }
+        
+        // Initialize Pylon
+        Pylon::PylonAutoInitTerm autoInitTerm;
+
+        Pylon::CInstantCamera camera;
+	
+        if ( pylon )
+      	{
+            try
+            {
+            camera.Attach(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
+            std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+            camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
+
+            }
+            catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
+
+         }
 
 	Detector detector(cfg_file, weights_file);
 
@@ -446,9 +464,6 @@ int main(int argc, char *argv[])
         connector::client< connector::UDP > sender( udp_port, udp_ip );
         if ( udp_test ) sender.init();
         
-        // Initialize Pylon
-        Pylon::PylonAutoInitTerm autoInitTerm;
-
 #ifdef TRACK_OPTFLOW
 	Tracker_optflow tracker_flow;
 	detector.wait_stream = true;
@@ -734,13 +749,12 @@ int main(int argc, char *argv[])
 			{
 				// Pylon Demo Stuff
 	            //
+                    /*
 	            Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
 	            std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
-
+                    */
 	            Pylon::CImageFormatConverter formatConverter;
-	            formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
-	            camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
-
+	            formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;	            
 	            Pylon::CPylonImage pylonImage;
 
 	            Pylon::CGrabResultPtr ptrGrabResult;
