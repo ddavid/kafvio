@@ -354,13 +354,13 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
                 
             count++;
 	}
-        /*
-        free(width_objects);
-        free(height_objects);
-        */
+        
+        //free(width_objects);
+        //free(height_objects);
+        
 }
 
-
+/*
 void show_console_result_distances(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names, connector::client< connector::UDP > & sender) {
 	
         int count = 1;
@@ -384,11 +384,12 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
 
             count++;
 	}
-        /*
-        free(width_objects);
-        free(height_objects);
-        */
+        
+        //free(width_objects);
+        //free(height_objects);
+        
 }
+*/
 
 void send_objects_tcp(std::vector<bbox_t> const result_vec, connector::client< connector::TCP > & sender, Distance_Strategy strat) {
 	
@@ -398,6 +399,16 @@ void send_objects_tcp(std::vector<bbox_t> const result_vec, connector::client< c
 	sender.send_tcp< object_t >( objects.element[0], objects.size * sizeof( object_t ));
 
 	//free(objects);	
+}
+
+void send_objects_udp(std::vector<bbox_t> const result_vec, connector::client< connector::UDP > & sender, Distance_Strategy strat) {
+    
+    object_list_t  objects = bbox_into_object_list( result_vec, strat );
+    
+    sender.send_udp< uint32_t >( objects.size );
+    sender.send_udp< object_t >( objects.element[0], objects.size * sizeof( object_t ));
+
+    //free(objects);    
 }
 
 std::vector<std::string> objects_names_from_file(std::string const filename) {
@@ -424,13 +435,14 @@ int main(int argc, char *argv[])
 	std::string  cfg_file;
         std::string  weights_file;
         std::string  filename;
-        std::string  udp_ip;
+        std::string  ip;
         int          pylon;
         int          record_stream;
         int          live_demo;
         int          valid_test;
-        int          udp_port;
+        int          port;
         int          udp_test;
+        int          tcp_test;
         float        thresh;
 
         po::options_description desc("Allowed options");
@@ -447,9 +459,10 @@ int main(int argc, char *argv[])
             ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
             ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
             ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
-            ("port", po::value<int>(&udp_port)->default_value(2000), "Set port to send objects to")
-            ("ip", po::value<std::string>(&udp_ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
-            ("udp_test", po::value<int>(&udp_test)->default_value(1), "If true, sends objects to specified ip:port")
+            ("port", po::value<int>(&port)->default_value(4242), "Set port to send objects to")
+            ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
+            ("udp_test", po::value<int>(&udp_test)->default_value(0), "If true, sends objects to specified ip:port")
+            ("tcp_test", po::value<int>(&tcp_test)->default_value(0), "If true, sends objects to specified ip:port")
 
         ;
 
@@ -481,14 +494,16 @@ int main(int argc, char *argv[])
 
          }
 
-	Detector detector(cfg_file, weights_file);
+        Detector detector(cfg_file, weights_file);
 
-	auto obj_names = objects_names_from_file(names_file);
+	    auto obj_names = objects_names_from_file(names_file);
         
         std::string out_videofile = "result.avi";
 	
-        connector::client< connector::TCP > sender( udp_port, udp_ip );
-        if ( udp_test ) sender.init();
+        connector::client< connector::TCP > tcp_sender( port, ip );
+        connector::client< connector::UDP > udp_sender( port, ip );
+        if ( udp_test ) udp_sender.init();
+        else if ( tcp_test) tcp_sender.init();
         
 #ifdef TRACK_OPTFLOW
 	Tracker_optflow tracker_flow;
@@ -653,15 +668,21 @@ int main(int argc, char *argv[])
 	                        result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
 	                        cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 	                    }
+
+                        if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
+                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+
+                        std::cout << "Detection FPS: " << current_det_fps << std::endl;
+                        std::cout << "Capture   FPS: " << current_cap_fps << std::endl;
 	                    show_console_result(result_vec, obj_names);
-                            // Make Results always be on top of Console
-			    std::cout << "\033[2J";
-	   		    std::cout << "\033[1;1H";
+                        // Make Results always be on top of Console
+			            std::cout << "\033[2J";
+	   		            std::cout << "\033[1;1H";
                             
                             if( live_demo )
                             {
                                 draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
-	                        large_preview.draw(cur_frame);
+	                            large_preview.draw(cur_frame);
 
 	                        cv::imshow("window name", cur_frame);
 	                        int key = cv::waitKey(3);   // 3 or 16ms
@@ -704,29 +725,21 @@ int main(int argc, char *argv[])
                     {  
                         for (std::string line; file >> line;)
                         {
+
 	                    std::cout << line << std::endl;
 	                    cv::Mat mat_img = cv::imread(line);
 	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	                    if ( udp_test ) send_objects_tcp( result_vec, sender, Distance_Strategy::CONE_WIDTH );
-                            else show_console_result_distances( result_vec, obj_names );
+
+	                    if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
+                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+                        
+                        show_console_result_distances( result_vec, obj_names );
 			    
-                            if(valid_test) 
-                            {
-                                draw_boxes(mat_img, result_vec, obj_names);
-	                        cv::imwrite("res_" + line, mat_img);
-                            }
-                            /*
-                            if(udp_test)
-                            {
-                                int list_size = width_objects->size;
-                                for( int j = 0; j < list_size; j++)
-                                {
-                                    // Send Obj with Width DistanceStrat
-                                    sender.send_udp< object_t >( width_objects->elements[( list_size - 1 )]);
-                                    //Send Obj with Height DistanceStrat
-                                    sender.send_udp< object_t >( height_objects->elements[( list_size - 1 )]);
-                                }
-                            }*/ 
+                        if( valid_test ) 
+                        {
+                            draw_boxes(mat_img, result_vec, obj_names);
+                            cv::imwrite("res_" + line, mat_img);
+                        } 
 	                }
 	            }
 	        }
@@ -741,7 +754,9 @@ int main(int argc, char *argv[])
                         cv::imshow("window name", mat_img);
 	            }
 
-                    show_console_result(result_vec, obj_names);
+                if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
+                else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+                show_console_result_distances(result_vec, obj_names);
 	            
 	            // Test width distance estimation
 	            object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
@@ -926,8 +941,7 @@ int main(int argc, char *argv[])
 								auto current_image = det_image;
 								consumed = true;
 								while (current_image.use_count() > 0) {
-									auto result = detector.detect_resized(*current_image, frame_size.width, frame_size.height, 
-										thresh, false);	// true
+									auto result = detector.detect_resized(*current_image, frame_size.width, frame_size.height, thresh, false);	// true
 									++fps_det_counter;
 									std::unique_lock<std::mutex> lock(mtx);
 									thread_result_vec = result;
@@ -966,16 +980,20 @@ int main(int argc, char *argv[])
 								cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 							}
 
-							if ( udp_test ) send_objects_tcp( result_vec, sender, Distance_Strategy::CONE_WIDTH );
-                                                        else show_console_result_distances( result_vec, obj_names );
+							if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
+                            else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
 
+                            std::cout << "Detection FPS: " << current_det_fps << std::endl;
+                            std::cout << "Capture   FPS: " << current_cap_fps << std::endl;
+                            show_console_result_distances( result_vec, obj_names );
+                            
 							// Make Results always be on top of Console
 							std::cout << "\033[2J";
-	   		    			        std::cout << "\033[1;1H";		
+	   		    			std::cout << "\033[1;1H";		
 
-                                                        if ( live_demo )
-                                                        {
-                                                            draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+                            if ( live_demo )
+                            {
+                                draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
 							    large_preview.draw(cur_frame);
 
 							    //cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
@@ -985,7 +1003,7 @@ int main(int argc, char *argv[])
 							    if (key == 'f') show_small_boxes = !show_small_boxes;
 							    if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
 							    if (key == 'e') extrapolate_flag = !extrapolate_flag;
-                                                        }
+                            }
                                                         
 
 							if (output_video.isOpened() && videowrite_ready) {
