@@ -431,19 +431,20 @@ std::vector<std::string> objects_names_from_file(std::string const filename) {
 
 int main(int argc, char *argv[])
 {      
-        std::string  names_file;
-	std::string  cfg_file;
-        std::string  weights_file;
-        std::string  filename;
-        std::string  ip;
-        int          pylon;
-        int          record_stream;
-        int          live_demo;
-        int          valid_test;
-        int          port;
-        int          udp_test;
-        int          tcp_test;
-        float        thresh;
+        std::string       names_file;
+        std::string       cfg_file;
+        std::string       weights_file;
+        std::string       filename;
+        std::string       ip;
+        int               pylon;
+        int               record_stream;
+        int               live_demo;
+        int               valid_test;
+        int               port;
+        int               udp_test;
+        int               tcp_test;
+        float             thresh;
+        Distance_Strategy distance_strategy;
 
         po::options_description desc("Allowed options");
         desc.add_options()
@@ -463,6 +464,7 @@ int main(int argc, char *argv[])
             ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
             ("udp_test", po::value<int>(&udp_test)->default_value(0), "If true, sends objects to specified ip:port")
             ("tcp_test", po::value<int>(&tcp_test)->default_value(0), "If true, sends objects to specified ip:port")
+            ("distance-strategy", po::value<Distance_Strategy>(&distance_strategy)->default_value(Distance_Strategy::CONE_HEIGHT), "Sets the distance estimation strategy to be used.")
 
         ;
 
@@ -669,8 +671,8 @@ int main(int argc, char *argv[])
 	                        cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 	                    }
 
-                        if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
-                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+                        if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
+                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
 
                         std::cout << "Detection FPS: " << current_det_fps << std::endl;
                         std::cout << "Capture   FPS: " << current_cap_fps << std::endl;
@@ -730,8 +732,8 @@ int main(int argc, char *argv[])
 	                    cv::Mat mat_img = cv::imread(line);
 	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
 
-	                    if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
-                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+	                    if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
+                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
                         
                         show_console_result_distances( result_vec, obj_names );
 			    
@@ -754,18 +756,10 @@ int main(int argc, char *argv[])
                         cv::imshow("window name", mat_img);
 	            }
 
-                if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
-                else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+                if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
+                else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
+
                 show_console_result_distances(result_vec, obj_names);
-	            
-	            // Test width distance estimation
-	            object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
-	            
-	            // Test height distance estimation
-	            object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
-	            
-	            std::cout << "Distance using Cone Width: " << width_objects.element[(width_objects.size - 1)].distance << std::endl;
-   	            std::cout << "Distance using Cone Height: " << height_objects.element[(height_objects.size - 1)].distance << std::endl;
 
 	            if(live_demo) cv::waitKey(0);
 	        }
@@ -980,8 +974,8 @@ int main(int argc, char *argv[])
 								cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 							}
 
-							if      ( udp_test ) send_objects_udp( result_vec, udp_sender, Distance_Strategy::CONE_WIDTH );
-                            else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, Distance_Strategy::CONE_WIDTH );
+							if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
+                            else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
 
                             std::cout << "Detection FPS: " << current_det_fps << std::endl;
                             std::cout << "Capture   FPS: " << current_cap_fps << std::endl;
