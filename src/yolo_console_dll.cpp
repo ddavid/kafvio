@@ -51,10 +51,7 @@
 
 namespace po = boost::program_options;
 
-enum Distance_Strategy {
-	CONE_HEIGHT,
-	CONE_WIDTH
-};
+enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1 };
 
 class track_kalman {
 public:
@@ -227,7 +224,8 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
 	{
 		case CONE_HEIGHT:
 
-			// Calculate Distances with cone height
+			std::cout << "Calculating using Height" << std::endl;
+                        // Calculate Distances with cone height
 			for( bbox_t& box : boxes )
 			{	
 				//std::cout << "Trying the height" << std::endl;
@@ -259,7 +257,8 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
 			break;
 
 		case CONE_WIDTH:
-			
+
+			std::cout << "Calculating using Width" << std::endl;
 			// Calculate Distances with cone width
 			for( bbox_t& box : boxes )
 			{
@@ -336,7 +335,7 @@ void show_console_result(std::vector<bbox_t> const result_vec, std::vector<std::
 
 void show_console_result_distances(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names) {
 	
-        int count = 1;
+        int count = 0;
         
         // Width distance estimation
         object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
@@ -444,6 +443,7 @@ int main(int argc, char *argv[])
         int               udp_test;
         int               tcp_test;
         float             thresh;
+        int               strategy_index;
         Distance_Strategy distance_strategy;
 
         po::options_description desc("Allowed options");
@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
             ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
             ("udp_test", po::value<int>(&udp_test)->default_value(0), "If true, sends objects to specified ip:port")
             ("tcp_test", po::value<int>(&tcp_test)->default_value(0), "If true, sends objects to specified ip:port")
-            ("distance-strategy", po::value<Distance_Strategy>(&distance_strategy)->default_value(Distance_Strategy::CONE_HEIGHT), "Sets the distance estimation strategy to be used.")
+            ("distance-strategy", po::value<int>(&strategy_index)->default_value(0), "Sets the distance estimation strategy to be used.\n0 := Height\n1 := Width")
 
         ;
 
@@ -477,7 +477,13 @@ int main(int argc, char *argv[])
             std::cout << desc << "\n";
             return 1;
         }
-        
+
+        // Set Distance Estimation
+        if      ( strategy_index == 0 ) distance_strategy = Distance_Strategy::CONE_HEIGHT;
+        else if ( strategy_index == 1 ) distance_strategy = Distance_Strategy::CONE_WIDTH;
+       
+        std::cout << "Using Distance Strat: " << distance_strategy << std::endl;
+ 
         // Initialize Pylon
         Pylon::PylonAutoInitTerm autoInitTerm;
 
@@ -733,15 +739,15 @@ int main(int argc, char *argv[])
 	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
 
 	                    if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
-                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
+                            else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
                         
-                        show_console_result_distances( result_vec, obj_names );
+                            show_console_result_distances( result_vec, obj_names );
 			    
-                        if( valid_test ) 
-                        {
-                            draw_boxes(mat_img, result_vec, obj_names);
-                            cv::imwrite("res_" + line, mat_img);
-                        } 
+                            if( valid_test ) 
+                            {
+                              draw_boxes(mat_img, result_vec, obj_names);
+                              cv::imwrite("res_" + line, mat_img);
+                            } 
 	                }
 	            }
 	        }
