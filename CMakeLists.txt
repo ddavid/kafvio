@@ -121,8 +121,10 @@ add_executable(main
     #main.cpp
     #src/yolo_v2_class.cpp
     src/yolo_v2_class.hpp
-    src/object.hpp
-    src/object.cpp
+    src/object.h
+    # Old Dirty, dirty FSD Object
+    #src/object.hpp
+    #src/object.cpp
     
 )
 

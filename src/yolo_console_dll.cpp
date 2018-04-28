@@ -22,7 +22,8 @@
 #define GPU
 
 #include "yolo_v2_class.hpp"	    // imported functions from DLL
-#include "object.hpp"		    // FSD Object
+//#include "object.hpp"		    // Old Dirty, dirty FSD Object
+#include "object.h"
 #include "client.h"                 // Jussie & Alex: UDP/TCP Connector 
 
 #include <pylon/PylonIncludes.h>    // Pylon SDK
@@ -185,7 +186,7 @@ public:
 
 };
 
-object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat )
+object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat )
 {	
 	// Dirty conversion before adjusting bbox_t
 
@@ -217,7 +218,10 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 
 	//Create list with length of detection vector
 	//object_list_t *cones = object_list__new(boxes.size());
-	object_list_t * cones = object_list__new_default();
+	object_list_t       cones;
+	cones.size = boxes.size();
+
+	int index = 0;
 
 	switch( strat )
 	{
@@ -241,16 +245,21 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 
                                 straight_distance = perpendicular_distance / std::cos( angle );
 
-				object_t temp = object__new();
+				object_t temp;
+                                temp.distance = straight_distance;
+                                temp.angle    = angle;
+                                temp.type     = box.obj_id;
 				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
-                                object__init( &temp, straight_distance, angle, box.w, box.obj_id );
+                                //object__init( &temp, straight_distance, angle, box.w, box.obj_id );
 
-				object_list__push_back_copy( cones, &temp );
+				//object_list__push_back_copy( cones, &temp );
+                                cones.element[index] = temp;
+                                index++;
 			}
 			break;
 
 		case CONE_WIDTH:
-
+			
 			// Calculate Distances with cone width
 			for( bbox_t& box : boxes )
 			{
@@ -267,12 +276,18 @@ object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strat
 
                                 straight_distance = perpendicular_distance / std::cos( angle );
 
-				object_t temp = object__new();
+			        object_t temp;
+                                temp.distance = straight_distance;
+                                temp.angle    = angle;
+                                temp.type     = box.obj_id;
 				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
-                                object__init( &temp, straight_distance, angle, box.w, box.obj_id );
+                                //object__init( &temp, straight_distance, angle, box.w, box.obj_id );
 
-				object_list__push_back_copy( cones, &temp );
-			}
+				//object_list__push_back_copy( cones, &temp );
+                                cones.element[index] = temp;
+                                index++;
+	
+     			}
 			break;
 		default:
 			std::cout << "Please use a valid Distance Extimation Strategy." << std::endl;
@@ -324,11 +339,9 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
         int count = 1;
         
         // Width distance estimation
-        object_list_t * width_objects = object_list__new(result_vec.size());
-	width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
+        object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
         //Height distance estimation
-        object_list_t * height_objects = object_list__new(result_vec.size());
-        height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
+        object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
         
         for (auto &i : result_vec) 
         {
@@ -336,25 +349,26 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
 	    std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
 	              << ", w = " << i.w << ", h = " << i.h
 		      << std::setprecision(3) << ", prob = " << i.prob 
-                      << ", distance_width = " << width_objects->elements[count].distance << std::setprecision(6) 
-                      << ", distance_height = " << height_objects->elements[count].distance << std::endl;
+                      << ", distance_width = " << width_objects.element[count].distance << std::setprecision(6) 
+                      << ", distance_height = " << height_objects.element[count].distance << std::endl;
                 
             count++;
 	}
+        /*
         free(width_objects);
         free(height_objects);
+        */
 }
+
 
 void show_console_result_distances(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names, connector::client< connector::UDP > & sender) {
 	
         int count = 1;
         
         // Width distance estimation
-        object_list_t * width_objects = object_list__new(result_vec.size());
-	width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
+        object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
         //Height distance estimation
-        object_list_t * height_objects = object_list__new(result_vec.size());
-        height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
+        object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
         
         for (auto &i : result_vec) 
         {
@@ -362,16 +376,28 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
 	    std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
 	              << ", w = " << i.w << ", h = " << i.h
 		      << std::setprecision(3) << ", prob = " << i.prob 
-                      << ", distance_width = " << width_objects->elements[count].distance << std::setprecision(6) 
-                      << ", distance_height = " << height_objects->elements[count].distance << std::endl;
+                      << ", distance_width = " << width_objects.element[count].distance << std::setprecision(6) 
+                      << ", distance_height = " << height_objects.element[count].distance << std::endl;
                
-            sender.send_udp< object_t >( width_objects->elements[count]);
-            sender.send_udp< object_t >( height_objects->elements[count]);
+            sender.send_udp< object_t >( width_objects.element[count]);
+            sender.send_udp< object_t >( height_objects.element[count]);
 
             count++;
 	}
+        /*
         free(width_objects);
         free(height_objects);
+        */
+}
+
+void send_objects_tcp(std::vector<bbox_t> const result_vec, connector::client< connector::TCP > & sender, Distance_Strategy strat) {
+	
+	object_list_t  objects = bbox_into_object_list( result_vec, strat );
+	
+	sender.send_tcp< uint32_t >( objects.size );
+	sender.send_tcp< object_t >( objects.element[0], objects.size * sizeof( object_t ));
+
+	//free(objects);	
 }
 
 std::vector<std::string> objects_names_from_file(std::string const filename) {
@@ -421,7 +447,7 @@ int main(int argc, char *argv[])
             ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
             ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
             ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
-            ("port", po::value<int>(&udp_port)->default_value(4242), "Set port to send objects to")
+            ("port", po::value<int>(&udp_port)->default_value(2000), "Set port to send objects to")
             ("ip", po::value<std::string>(&udp_ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
             ("udp_test", po::value<int>(&udp_test)->default_value(1), "If true, sends objects to specified ip:port")
 
@@ -461,7 +487,7 @@ int main(int argc, char *argv[])
         
         std::string out_videofile = "result.avi";
 	
-        connector::client< connector::UDP > sender( udp_port, udp_ip );
+        connector::client< connector::TCP > sender( udp_port, udp_ip );
         if ( udp_test ) sender.init();
         
 #ifdef TRACK_OPTFLOW
@@ -681,7 +707,7 @@ int main(int argc, char *argv[])
 	                    std::cout << line << std::endl;
 	                    cv::Mat mat_img = cv::imread(line);
 	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	                    if ( udp_test ) show_console_result_distances( result_vec, obj_names, sender );
+	                    if ( udp_test ) send_objects_tcp( result_vec, sender, Distance_Strategy::CONE_WIDTH );
                             else show_console_result_distances( result_vec, obj_names );
 			    
                             if(valid_test) 
@@ -718,15 +744,13 @@ int main(int argc, char *argv[])
                     show_console_result(result_vec, obj_names);
 	            
 	            // Test width distance estimation
-	            object_list_t * width_objects = object_list__new(result_vec.size());
-	            width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
+	            object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
 	            
 	            // Test height distance estimation
-	            object_list_t * height_objects = object_list__new(result_vec.size());
-	            height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
+	            object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
 	            
-	            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
-   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
+	            std::cout << "Distance using Cone Width: " << width_objects.element[(width_objects.size - 1)].distance << std::endl;
+   	            std::cout << "Distance using Cone Height: " << height_objects.element[(height_objects.size - 1)].distance << std::endl;
 
 	            if(live_demo) cv::waitKey(0);
 	        }
@@ -941,7 +965,10 @@ int main(int argc, char *argv[])
 								result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
 								cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
 							}
-							show_console_result_distances(result_vec, obj_names);
+
+							if ( udp_test ) send_objects_tcp( result_vec, sender, Distance_Strategy::CONE_WIDTH );
+                                                        else show_console_result_distances( result_vec, obj_names );
+
 							// Make Results always be on top of Console
 							std::cout << "\033[2J";
 	   		    			        std::cout << "\033[1;1H";		
