@@ -291,7 +291,7 @@ layer parse_yolo(list *options, size_params params)
 		for (i = 0; i < len; ++i) {
 			if (a[i] == ',') ++n;
 		}
-		for (i = 0; i < n; ++i) {
+		for (i = 0; i < n && i < total*2; ++i) {
 			float bias = atof(a);
 			l.biases[i] = bias;
 			a = strchr(a, ',') + 1;
@@ -344,7 +344,7 @@ layer parse_region(list *options, size_params params)
         for(i = 0; i < len; ++i){
             if (a[i] == ',') ++n;
         }
-        for(i = 0; i < n; ++i){
+        for(i = 0; i < n && i < num*2; ++i){
             float bias = atof(a);
             l.biases[i] = bias;
             a = strchr(a, ',')+1;
@@ -622,6 +622,7 @@ void parse_net_options(list *options, network *net)
     net->inputs = option_find_int_quiet(options, "inputs", net->h * net->w * net->c);
     net->max_crop = option_find_int_quiet(options, "max_crop",net->w*2);
     net->min_crop = option_find_int_quiet(options, "min_crop",net->w);
+	net->flip = option_find_int_quiet(options, "flip", 1);
 
 	net->small_object = option_find_int_quiet(options, "small_object", 0);
     net->angle = option_find_float_quiet(options, "angle", 0);
@@ -636,6 +637,9 @@ void parse_net_options(list *options, network *net)
     char *policy_s = option_find_str(options, "policy", "constant");
     net->policy = get_policy(policy_s);
     net->burn_in = option_find_int_quiet(options, "burn_in", 0);
+#ifdef CUDNN_HALF
+	net->burn_in = 0;
+#endif
     if(net->policy == STEP){
         net->step = option_find_int(options, "step", 1);
         net->scale = option_find_float(options, "scale", 1);

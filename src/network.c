@@ -28,6 +28,19 @@
 #include "route_layer.h"
 #include "shortcut_layer.h"
 #include "yolo_layer.h"
+#include "parser.h"
+
+network *load_network(char *cfg, char *weights, int clear)
+{
+	printf(" Try to load cfg: %s, weights: %s, clear = %d \n", cfg, weights, clear);
+	network *net = calloc(1, sizeof(network));
+	*net = parse_network_cfg(cfg);
+	if (weights && weights[0] != 0) {
+		load_weights(net, weights);
+	}
+	if (clear) (*net->seen) = 0;
+	return net;
+}
 
 int get_current_batch(network net)
 {
@@ -44,6 +57,27 @@ void reset_momentum(network net)
     #ifdef GPU
         //if(net.gpu_index >= 0) update_network_gpu(net);
     #endif
+}
+
+void reset_network_state(network *net, int b)
+{
+	int i;
+	for (i = 0; i < net->n; ++i) {
+#ifdef GPU
+		layer l = net->layers[i];
+		if (l.state_gpu) {
+			fill_ongpu(l.outputs, 0, l.state_gpu + l.outputs*b, 1);
+		}
+		if (l.h_gpu) {
+			fill_ongpu(l.outputs, 0, l.h_gpu + l.outputs*b, 1);
+		}
+#endif
+	}
+}
+
+void reset_rnn(network *net)
+{
+	reset_network_state(net, 0);
 }
 
 float get_current_rate(network net)
@@ -555,6 +589,9 @@ void custom_get_region_detections(layer l, int w, int h, int net_w, int net_h, f
 
 	free(boxes);
 	free_ptrs((void **)probs, l.w*l.h*l.n);
+
+	//correct_region_boxes(dets, l.w*l.h*l.n, w, h, net_w, net_h, relative);
+	correct_yolo_boxes(dets, l.w*l.h*l.n, w, h, net_w, net_h, relative, letter);
 }
 
 void fill_network_boxes(network *net, int w, int h, float thresh, float hier, int *map, int relative, detection *dets, int letter)
@@ -763,14 +800,14 @@ void fuse_conv_batchnorm(network net)
 				int f;
 				for (f = 0; f < l->n; ++f)
 				{
-					l->biases[f] = l->biases[f] - l->scales[f] * l->rolling_mean[f] / (sqrtf(l->rolling_variance[f]) + .000001f);
+					l->biases[f] = l->biases[f] - (double)l->scales[f] * l->rolling_mean[f] / (sqrt((double)l->rolling_variance[f]) + .000001f);
 
 					const size_t filter_size = l->size*l->size*l->c;
 					int i;
 					for (i = 0; i < filter_size; ++i) {
 						int w_index = f*filter_size + i;
 
-						l->weights[w_index] = l->weights[w_index] * l->scales[f] / (sqrtf(l->rolling_variance[f]) + .000001f);
+						l->weights[w_index] = (double)l->weights[w_index] * l->scales[f] / (sqrt((double)l->rolling_variance[f]) + .000001f);
 					}
 				}
 

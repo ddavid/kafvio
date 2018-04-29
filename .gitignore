@@ -16,6 +16,8 @@ submission/
 cfg/
 darknet
 .fuse*
+validation/
+partial_weights/
 
 # OS Generated #
 .DS_Store*
@@ -25,7 +27,7 @@ Thumbs.db
 *.swp
 
 # Makefile fsd-train Jetson #
-Makefile
+# Makefile
 
 # CMake #
 cmake-build-debug/

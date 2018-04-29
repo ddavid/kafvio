@@ -24,6 +24,7 @@
 #ifndef CV_VERSION_EPOCH
 #include "opencv2/videoio/videoio_c.h"
 #endif
+#include "http_stream.h"
 image get_image_from_stream(CvCapture *cap);
 
 static char **demo_names;
@@ -102,7 +103,7 @@ void *detect_in_thread(void *ptr)
 	int letter = 0;
 	int nboxes = 0;
 	detection *dets = get_network_boxes(&net, det.w, det.h, demo_thresh, demo_thresh, 0, 1, &nboxes, letter);
-	if (nms) do_nms_obj_v3(dets, nboxes, l.classes, nms);
+	if (nms) do_nms_obj(dets, nboxes, l.classes, nms);
 
     printf("\033[2J");
     printf("\033[1;1H");
@@ -143,11 +144,11 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     demo_classes = classes;
     demo_thresh = thresh;
     printf("Demo\n");
-    net = parse_network_cfg_custom(cfgfile, 1);
+    net = parse_network_cfg_custom(cfgfile, 1);	// set batch=1
     if(weightfile){
         load_weights(&net, weightfile);
     }
-    set_batch_network(&net, 1);
+    //set_batch_network(&net, 1);
 	fuse_conv_batchnorm(net);
     srand(2222222);
 
