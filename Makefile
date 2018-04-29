@@ -6,7 +6,7 @@ OPENMP=1
 LIBSO=1
 
 ARCH=     -gencode arch=compute_52,code=[sm_52,compute_52] \
-	  -gencode arch=compute_61,code=[sm_62,compute_62]
+	  -gencode arch=compute_62,code=[sm_62,compute_62]
 
 OS := $(shell uname)
 
@@ -34,7 +34,7 @@ OBJDIR=./obj/
 
 ifeq ($(LIBSO), 1)
 LIBNAMESO=darknet.so
-APPNAMESO=uselib
+#APPNAMESO=uselib
 endif
 
 CC=gcc
