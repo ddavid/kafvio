@@ -196,8 +196,8 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
 	//const double h_AOV 		  = 75.3937;
 	//const double v_AOV 		  = 63.5316;
         // RADIANS
-        const double h_AOV         = 0.0229662;
-        const double v_AOV         = 0.0193528;
+        const double h_AOV         = 1.3158683; // 0.0229662;
+        const double v_AOV         = 1.1088353; // 0.0193528;
 
 	// All sensor and lens measures are in μm
 
@@ -443,6 +443,7 @@ int main(int argc, char *argv[])
         int               udp_test;
         int               tcp_test;
         float             thresh;
+        int               undistort;
         int               strategy_index;
         Distance_Strategy distance_strategy;
 
@@ -459,6 +460,7 @@ int main(int argc, char *argv[])
             ("record", po::value<int>(&record_stream)->default_value(0), "Record openCV stream to .avi file")
             ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
             ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
+            ("undistort", po::value<int>(&undistort)->default_value(0), "Set undistortion flag")
             ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
             ("port", po::value<int>(&port)->default_value(4242), "Set port to send objects to")
             ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
@@ -484,27 +486,41 @@ int main(int argc, char *argv[])
        
         std::cout << "Using Distance Strat: " << distance_strategy << std::endl;
  
+        // create a 3x3 double-precision camera matrix
+        cv::Mat cam_mtx  = (cv::Mat_<double>(3,3)
+                                            << 862.47564274, 0.0         , 692.5289645
+                                              , 0.0        , 851.02364963, 528.42008433
+                                              , 0.0        , 0.0         , 1.0);
+        cv::Mat dist_mtx = (cv::Mat_<double>(1,5) << -0.25596272,  0.14915701,  0.00074994, -0.001857  , -0.05665815); 
+        std::cout << "Trying to initialize Pylon" << std::endl;
         // Initialize Pylon
         Pylon::PylonAutoInitTerm autoInitTerm;
 
         Pylon::CInstantCamera camera;
-	
+	Pylon::CImageFormatConverter formatConverter;
+	formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;	            
+	Pylon::CPylonImage pylonImage;
+
+	Pylon::CGrabResultPtr ptrGrabResult;
+	    
         if ( pylon )
       	{
             try
             {
+            std::cout << "Trying to create Cam" << std::endl;
             camera.Attach(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
             std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
-            camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
+            camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);        
+            std::cout << "Pylon envs set" << std::endl;                  
 
             }
             catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
 
-         }
+        }
 
         Detector detector(cfg_file, weights_file);
 
-	    auto obj_names = objects_names_from_file(names_file);
+	auto obj_names = objects_names_from_file(names_file);
         
         std::string out_videofile = "result.avi";
 	
@@ -574,7 +590,16 @@ int main(int argc, char *argv[])
 	                    ++fps_cap_counter;
 	                    cur_frame = cap_frame.clone();
 	                }
-	                t_cap = std::thread([&]() { cap >> cap_frame; });
+	                t_cap = std::thread([&]() 
+                        { 
+                          cv::Mat temp;
+                          cv::Mat undistort_img;
+                          
+                          cap >> temp;
+
+                          cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                          cap_frame = undistort_img; 
+                        });
 	                ++cur_time_extrapolate;
 
 	                // swap result bouned-boxes and input-frame
@@ -736,7 +761,10 @@ int main(int argc, char *argv[])
 
 	                    std::cout << line << std::endl;
 	                    cv::Mat mat_img = cv::imread(line);
-	                    std::vector<bbox_t> result_vec = detector.detect(mat_img);
+                            cv::Mat undistort_img;
+
+                            cv::undistort(mat_img, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+	                    std::vector<bbox_t> result_vec = detector.detect(undistort_img);
 
 	                    if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
                             else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
@@ -745,21 +773,24 @@ int main(int argc, char *argv[])
 			    
                             if( valid_test ) 
                             {
-                              draw_boxes(mat_img, result_vec, obj_names);
-                              cv::imwrite("res_" + line, mat_img);
+                              draw_boxes(undistort_img, result_vec, obj_names);
+                              cv::imwrite("res_" + line, undistort_img);
                             } 
 	                }
 	            }
 	        }
 	        else {  // image file
+                    cv::Mat undistort_img;
 	            cv::Mat mat_img = cv::imread(filename);
-	            std::vector<bbox_t> result_vec = detector.detect(mat_img);
+
+                    cv::undistort(mat_img, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+	            std::vector<bbox_t> result_vec = detector.detect(undistort_img);
 	            //result_vec = detector.tracking_id(result_vec);    // comment it - if track_id is not required
 	            
 	            if(live_demo)
                     { 
-                        draw_boxes(mat_img, result_vec, obj_names); 
-                        cv::imshow("window name", mat_img);
+                        draw_boxes(undistort_img, result_vec, obj_names); 
+                        cv::imshow("window name", undistort_img);
 	            }
 
                 if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
@@ -786,29 +817,28 @@ int main(int argc, char *argv[])
 		{	
 			try 
 			{
+                    std::cout << "Pylon Demo" << std::endl;
 				// Pylon Demo Stuff
 	            //
-                    /*
+                    /* 
 	            Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
 	            std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
-                    */
+                    
+                    camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser); 
 	            Pylon::CImageFormatConverter formatConverter;
 	            formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;	            
 	            Pylon::CPylonImage pylonImage;
 
 	            Pylon::CGrabResultPtr ptrGrabResult;
 	            
+                    std::cout << "Pylon envs set" << std::endl;                  
+                    */
 	            extrapolate_coords_t extrapolate_coords;
 				bool extrapolate_flag = false;
 				float cur_time_extrapolate = 0, old_time_extrapolate = 0;
 				preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
 				bool show_small_boxes = false;
 
-				std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
-				std::string const protocol = filename.substr(0, 7);
-				if (file_ext == "avi" || file_ext == "mp4" || file_ext == "mjpg" || file_ext == "mov" || 	// video file
-					protocol == "rtmp://" || protocol == "rtsp://" || protocol == "http://" || protocol == "https:/")	// video network stream
-				{
 					cv::Mat cap_frame, cur_frame, det_frame, write_frame;
 					std::queue<cv::Mat> track_optflow_queue;
 					int passed_flow_frames = 0;
@@ -826,6 +856,7 @@ int main(int argc, char *argv[])
 					std::mutex mtx;
 					std::condition_variable cv_detected, cv_pre_tracked;
 					std::chrono::steady_clock::time_point steady_start, steady_end;
+                                        std::cout << "Starting to Grab" << std::endl;
 					
 	                if(camera.IsGrabbing())
 	                {
@@ -833,10 +864,21 @@ int main(int argc, char *argv[])
 	                    if( ptrGrabResult->GrabSucceeded())
 	                    {
 	                        formatConverter.Convert(pylonImage, ptrGrabResult);
-							cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
-	                        cur_frame = temp;                                    	
-							std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
-					    }
+                                cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+	                        cv::Mat undistort_img;
+
+                                if( undistort )
+                                {
+                                  cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                                  cur_frame = undistort_img;
+                                }
+                                else 
+                                {
+                                  std::cout << "Setting dist img" << std::endl;
+                                  cur_frame = temp;
+                                }                                    	
+                                std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
+                            }
 	                }
 	                                
 	                //cv::VideoCapture cap(filename); cap >> cur_frame;
@@ -859,7 +901,7 @@ int main(int argc, char *argv[])
 
 					while (!cur_frame.empty()) 
 					{
-						// always sync
+					        // always sync
 						if (t_cap.joinable()) {
 							t_cap.join();
 							++fps_cap_counter;
@@ -875,8 +917,17 @@ int main(int argc, char *argv[])
 	                                formatConverter.Convert(pylonImage, ptrGrabResult);
 	                                cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
 
-		    						cap_frame = temp;
-		    					}
+                                        cv::Mat undistort_img;
+                                        if( undistort )
+                                        {
+                                          cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                                          cur_frame = undistort_img;
+                                        } 
+                                        else 
+                                        {
+                                          cur_frame = temp;
+                                        }
+		    		    }
 	                        }
 	                    });
 						++cur_time_extrapolate;
@@ -1018,7 +1069,7 @@ int main(int argc, char *argv[])
 
 	#ifndef TRACK_OPTFLOW
 						// wait detection result for video-file only (not for net-cam)
-						if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") {
+						if ( record_stream ) {
 							std::unique_lock<std::mutex> lock(mtx);
 							while (!consumed) cv_detected.wait(lock);
 						}
@@ -1028,7 +1079,7 @@ int main(int argc, char *argv[])
 					if (t_detect.joinable()) t_detect.join();
 					if (t_videowrite.joinable()) t_videowrite.join();
 					std::cout << "Video ended \n";
-				}
+				
 			}
 		catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
                 catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }

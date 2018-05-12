@@ -1,0 +1,39 @@
+Using Distance Strat: 0
+ Used GPU 0 
+
+ seen 64 
+object names loaded 
+input image or video filename: File Name: distance-test.txt
+big-red_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 686, y = 707, w = 151, h = 175, prob = 0.537, distance_width = 1.25, distance_height = 1.53734
+big-red_second-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 703, y = 680, w = 160, h = 178, prob = 0.381, distance_width = 1.18, distance_height = 1.51291
+blue_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+blue_third-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 12, y = 596, w = 63, h = 121, prob = 0.479, distance_width = 3.75, distance_height = 2.78055
+red_fourth-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 682, y = 744, w = 147, h = 188, prob = 0.558, distance_width = 1.29, distance_height = 1.43077
+yellow-cone - obj_id = 1,  x = 0, y = 613, w = 29, h = 121, prob = 0.316, distance_width = 8.23, distance_height = 2.80685
+red_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 682, y = 727, w = 155, h = 181, prob = 0.441, distance_width = 1.22, distance_height = 1.4861
+yellow_first-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 753, y = 717, w = 130, h = 158, prob = 0.795, distance_width = 1.46, distance_height = 1.71239
+yellow_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 610, y = 737, w = 176, h = 202, prob = 0.708, distance_width = 1.07, distance_height = 1.331
+input image or video filename: 
