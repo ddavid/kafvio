@@ -1,0 +1,41 @@
+Using Distance Strat: 0
+Trying to initialize Pylon
+ Used GPU 0 
+
+ seen 64 
+object names loaded 
+input image or video filename: File Name: distance-test.txt
+big-red_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 160, y = 663, w = 151, h = 205, prob = 0.479, distance_width = 1.42, distance_height = 1.48847
+yellow-cone - obj_id = 1,  x = 686, y = 697, w = 151, h = 192, prob = 0.44, distance_width = 1.25, distance_height = 1.40122
+big-red_second-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 711, y = 677, w = 151, h = 192, prob = 0.543, distance_width = 1.25, distance_height = 1.40339
+blue_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 404, y = 148, w = 50, h = 87, prob = 0.365, distance_width = 3.89, distance_height = 3.18209
+blue_third-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+red_fourth-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 686, y = 741, w = 143, h = 208, prob = 0.636, distance_width = 1.32, distance_height = 1.29344
+red_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 686, y = 724, w = 151, h = 192, prob = 0.568, distance_width = 1.25, distance_height = 1.40122
+yellow_first-cone_teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 757, y = 714, w = 130, h = 171, prob = 0.736, distance_width = 1.46, distance_height = 1.58298
+yellow-cone - obj_id = 1,  x = 804, y = 690, w = 58, h = 60, prob = 0.274, distance_width = 3.3, distance_height = 4.54332
+yellow_no-teppich.jpg
+Calculating using Width
+Calculating using Height
+yellow-cone - obj_id = 1,  x = 606, y = 741, w = 185, h = 218, prob = 0.769, distance_width = 1.02, distance_height = 1.23348
+input image or video filename: 
