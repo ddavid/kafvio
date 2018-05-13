@@ -18,6 +18,13 @@ darknet
 .fuse*
 validation/
 partial_weights/
+cone-sim_augmented/
+augmented_training/
+old_validation/
+training_v2/
+valid_kit/
+training_first-basler-outdoor/
+basler-tamron_augmented_only-red/
 
 # OS Generated #
 .DS_Store*
@@ -34,5 +41,4 @@ cmake-build-debug/
 build/
 *.weights
 *.mp4
-augmented_training/
 *.avi
