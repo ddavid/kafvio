@@ -25,6 +25,7 @@ training_v2/
 valid_kit/
 training_first-basler-outdoor/
 basler-tamron_augmented_only-red/
+logs/
 
 # OS Generated #
 .DS_Store*
@@ -42,3 +43,5 @@ build/
 *.weights
 *.mp4
 *.avi
+*.csv
+*.log
