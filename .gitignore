@@ -16,6 +16,15 @@ submission/
 cfg/
 darknet
 .fuse*
+basler-tamron_augmented_only-red/
+cone-sim_augmented/
+logs/
+old_validation/
+partial_weights/
+training_first-basler-outdoor/
+training_v2/
+valid_kit/
+validation/
 
 # OS Generated #
 .DS_Store*
