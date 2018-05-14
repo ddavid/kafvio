@@ -43,3 +43,4 @@ build/
 *.mp4
 augmented_training/
 *.avi
+chart*

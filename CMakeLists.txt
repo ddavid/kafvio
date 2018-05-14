@@ -117,7 +117,8 @@ link_directories(
 )
 
 add_executable(main
-    src/yolo_console_dll.cpp
+    src/basler-demo.cpp
+    #src/yolo_console_dll.cpp
     #main.cpp
     #src/yolo_v2_class.cpp
     src/yolo_v2_class.hpp

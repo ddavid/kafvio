@@ -53,6 +53,9 @@ namespace po = boost::program_options;
 
 enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1 };
 
+const int IMAGE_HEIGHT = 1024;
+const int IMAGE_WIDTH  = 1280;
+
 class track_kalman {
 public:
     cv::KalmanFilter kf;
@@ -491,7 +494,36 @@ int main(int argc, char *argv[])
                                         << 862.47564274, 0.0         , 692.5289645
                                           , 0.0        , 851.02364963, 528.42008433
                                           , 0.0        , 0.0         , 1.0);
-    cv::Mat dist_mtx = (cv::Mat_<double>(1,5) << -0.25596272,  0.14915701,  0.00074994, -0.001857  , -0.05665815); 
+    cv::Mat dist_mtx = (cv::Mat_<double>(1,5) << -0.25596272,  0.14915701,  0.00074994, -0.001857  , -0.05665815);
+    cv::Mat rvec     = (cv::Mat_<double>(3,1) << -0.05461275,  1.12613537,  0.04233885);
+    cv::Mat tvec     = (cv::Mat_<double>(3,1) << -1.65275017, -2.34888592,  13.89459771);
+
+    cv::Mat map1, map2;
+
+    cv::Size imageSize( IMAGE_HEIGHT, IMAGE_WIDTH );
+    cv::Mat new_cam_mtx = cv::getOptimalNewCameraMatrix(cam_mtx, dist_mtx, imageSize, 1, imageSize, 0);
+    cv::initUndistortRectifyMap(cam_mtx, dist_mtx, cv::Mat(), new_cam_mtx, imageSize, CV_16SC2, map1, map2);
+
+    /*
+    cv::Mat xyz(IMAGE_HEIGHT, IMAGE_WIDTH, CV_32FC3);
+    float * pxyz = (float *)xyz.data;
+    for (int y = 0; y < IMAGE_HEIGHT; y++)
+        for (int x = 0; x < IMAGE_WIDTH; x++)
+        {
+            *pxyz++ = x;
+            *pxyz++ = y;
+            *pxyz++ = 0;
+        }
+    int flat_dims = IMAGE_HEIGHT * IMAGE_WIDTH;
+    xyz = xyz.reshape(0, flat_dims);
+    cv::Mat mapToSrc(flat_dims, 1, CV_32FC2);
+    cv::projectPoints(xyz, rvec, tvec, cam_mtx, dist_mtx, mapToSrc);
+    cv::Mat maps[2];
+    mapToSrc = mapToSrc.reshape(0, IMAGE_HEIGHT);
+    cv::split(mapToSrc, maps);
+    */  
+        
+
     std::cout << "Trying to initialize Pylon" << std::endl;
     // Initialize Pylon
     Pylon::PylonAutoInitTerm autoInitTerm;
@@ -579,7 +611,7 @@ int main(int argc, char *argv[])
                 int const video_fps = cap.get(CV_CAP_PROP_FPS);
                 cv::Size const frame_size = cur_frame.size();
                 cv::VideoWriter output_video;
-                    // Stream Recording
+                // Stream Recording
                 if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
 
                 while (!cur_frame.empty()) 
@@ -600,8 +632,9 @@ int main(int argc, char *argv[])
 
                           if( undistort )
                           {
-                              cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
-                              cap_frame = undistort_img;
+                              //cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                              cv::remap(temp, undistort_img, map1, map2, cv::INTER_LINEAR);
+                              cap_frame = temp;
                           }
                           else 
                           {
