@@ -527,23 +527,26 @@ int main(int argc, char *argv[])
     std::cout << "Trying to initialize Pylon" << std::endl;
     // Initialize Pylon
     Pylon::PylonAutoInitTerm autoInitTerm;
+    std::cout << "Pylon successfully initialized" << std::endl;
 
     Pylon::CInstantCamera camera;
     Pylon::CImageFormatConverter formatConverter;
     formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;                
     Pylon::CPylonImage pylonImage;
-
+   
     Pylon::CGrabResultPtr ptrGrabResult;
-        
+
+    std::cout << "Pylon Camera Instance and GrabPointer Created" << std::endl;    
+     
     if ( pylon )
     {
         try
         {
-        std::cout << "Trying to create Cam" << std::endl;
+        std::cout << "Trying to Attach Cam" << std::endl;
         camera.Attach(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
-        std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+        std::cout << "Camera Attached.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
         camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);        
-        std::cout << "Pylon envs set" << std::endl;                  
+        std::cout << "Grabbing Started" << std::endl;                  
 
         }
         catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
@@ -894,9 +897,7 @@ int main(int argc, char *argv[])
                 std::thread t_detect, t_cap, t_videowrite;
                 std::mutex mtx;
                 std::condition_variable cv_detected, cv_pre_tracked;
-                std::chrono::steady_clock::time_point steady_start, steady_end;
-                                    std::cout << "Starting to Grab" << std::endl;
-                
+                std::chrono::steady_clock::time_point steady_start, steady_end;               
                 if(camera.IsGrabbing())
                 {
                     camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
@@ -909,11 +910,11 @@ int main(int argc, char *argv[])
                         if( undistort )
                         {
                           cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
-                          cap_frame = undistort_img;
+                          cur_frame = undistort_img;
                         }
                         else 
                         {
-                          cap_frame = temp;
+                          cur_frame = temp;
                         }                                       
                         std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
                     }
