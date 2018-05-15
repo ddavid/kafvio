@@ -765,10 +765,11 @@ int main(int argc, char *argv[])
                         // Make Results always be on top of Console
                         std::cout << "\033[2J";
                         std::cout << "\033[1;1H";
-                            
+                        
+                        if( live_demo || record_stream)  draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+
                         if( live_demo )
                         {
-                            draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
                             large_preview.draw(cur_frame);
 
                         cv::imshow("window name", cur_frame);
