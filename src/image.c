@@ -13,6 +13,7 @@
 #ifdef OPENCV
 #include "opencv2/highgui/highgui_c.h"
 #include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/core/types_c.h"
 #include "opencv2/core/version.hpp"
 #ifndef CV_VERSION_EPOCH
 #include "opencv2/videoio/videoio_c.h"
@@ -35,6 +36,35 @@ float get_color(int c, int x, int max)
     float r = (1-ratio) * colors[i][c] + ratio*colors[j][c];
     //printf("%f\n", r);
     return r;
+}
+
+static float get_pixel(image m, int x, int y, int c)
+{
+	assert(x < m.w && y < m.h && c < m.c);
+	return m.data[c*m.h*m.w + y*m.w + x];
+}
+static float get_pixel_extend(image m, int x, int y, int c)
+{
+	if (x < 0 || x >= m.w || y < 0 || y >= m.h) return 0;
+	/*
+	if(x < 0) x = 0;
+	if(x >= m.w) x = m.w-1;
+	if(y < 0) y = 0;
+	if(y >= m.h) y = m.h-1;
+	*/
+	if (c < 0 || c >= m.c) return 0;
+	return get_pixel(m, x, y, c);
+}
+static void set_pixel(image m, int x, int y, int c, float val)
+{
+	if (x < 0 || y < 0 || c < 0 || x >= m.w || y >= m.h || c >= m.c) return;
+	assert(x < m.w && y < m.h && c < m.c);
+	m.data[c*m.h*m.w + y*m.w + x] = val;
+}
+static void add_pixel(image m, int x, int y, int c, float val)
+{
+	assert(x < m.w && y < m.h && c < m.c);
+	m.data[c*m.h*m.w + y*m.w + x] += val;
 }
 
 void composite_image(image source, image dest, int dx, int dy)
@@ -200,28 +230,83 @@ image **load_alphabet()
     return alphabets;
 }
 
-void draw_detections_v3(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes)
-{
-	int i, j;
 
-	for (i = 0; i < num; ++i) {
-		char labelstr[4096] = { 0 };
-		int class_id = -1;
-		for (j = 0; j < classes; ++j) {
-			if (dets[i].prob[j] > thresh) {
-				if (class_id < 0) {
-					strcat(labelstr, names[j]);
-					class_id = j;
-				}
-				else {
-					strcat(labelstr, ", ");
-					strcat(labelstr, names[j]);
-				}
-				printf("%s: %.0f%%\n", names[j], dets[i].prob[j] * 100);
+
+// Creates array of detections with prob > thresh and fills best_class for them
+detection_with_class* get_actual_detections(detection *dets, int dets_num, float thresh, int* selected_detections_num)
+{
+	int selected_num = 0;
+	detection_with_class* result_arr = calloc(dets_num, sizeof(detection_with_class));
+	int i;
+	for (i = 0; i < dets_num; ++i) {
+		int best_class = -1;
+		float best_class_prob = thresh;
+		int j;
+		for (j = 0; j < dets[i].classes; ++j) {
+			if (dets[i].prob[j] > best_class_prob ) {
+				best_class = j;
+				best_class_prob = dets[i].prob[j];
 			}
 		}
-		if (class_id >= 0) {
+		if (best_class >= 0) {
+			result_arr[selected_num].det = dets[i];
+			result_arr[selected_num].best_class = best_class;
+			++selected_num;
+		}
+	}
+	if (selected_detections_num)
+		*selected_detections_num = selected_num;
+	return result_arr;
+}
+
+// compare to sort detection** by bbox.x
+int compare_by_lefts(const void *a_ptr, const void *b_ptr) {
+	const detection_with_class* a = (detection_with_class*)a_ptr;
+	const detection_with_class* b = (detection_with_class*)b_ptr;
+	const float delta = (a->det.bbox.x - a->det.bbox.w/2) - (b->det.bbox.x - b->det.bbox.w/2);
+	return delta < 0 ? -1 : delta > 0 ? 1 : 0;
+}
+
+// compare to sort detection** by best_class probability 
+int compare_by_probs(const void *a_ptr, const void *b_ptr) {
+	const detection_with_class* a = (detection_with_class*)a_ptr;
+	const detection_with_class* b = (detection_with_class*)b_ptr;
+	float delta = a->det.prob[a->best_class] - b->det.prob[b->best_class];
+	return delta < 0 ? -1 : delta > 0 ? 1 : 0;
+}
+
+void draw_detections_v3(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output)
+{
+	int selected_detections_num;
+	detection_with_class* selected_detections = get_actual_detections(dets, num, thresh, &selected_detections_num);
+
+	// text output
+	qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_lefts);
+	int i;
+	for (i = 0; i < selected_detections_num; ++i) {
+		const int best_class = selected_detections[i].best_class;
+		printf("%s: %.0f%%", names[best_class],	selected_detections[i].det.prob[best_class] * 100);
+		if (ext_output)
+			printf("\t(left: %.0f \ttop: %.0f \tw: %0.f \th: %0.f)\n",
+				(selected_detections[i].det.bbox.x - selected_detections[i].det.bbox.w / 2)*im.w,
+				(selected_detections[i].det.bbox.y - selected_detections[i].det.bbox.h / 2)*im.h,
+				selected_detections[i].det.bbox.w*im.w, selected_detections[i].det.bbox.h*im.h);
+		else
+			printf("\n");
+		int j;
+		for (j = 0; j < classes; ++j) {
+			if (selected_detections[i].det.prob[j] > thresh && j != best_class) {
+				printf("%s: %.0f%%\n", names[j], selected_detections[i].det.prob[j] * 100);
+			}
+		}
+	}
+
+	// image output
+	qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_probs);
+	for (i = 0; i < selected_detections_num; ++i) {
 			int width = im.h * .006;
+			if (width < 1)
+				width = 1;
 
 			/*
 			if(0){
@@ -230,8 +315,8 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 			}
 			*/
 
-			//printf("%d %s: %.0f%%\n", i, names[class_id], prob*100);
-			int offset = class_id * 123457 % classes;
+			//printf("%d %s: %.0f%%\n", i, names[selected_detections[i].best_class], prob*100);
+			int offset = selected_detections[i].best_class * 123457 % classes;
 			float red = get_color(2, offset, classes);
 			float green = get_color(1, offset, classes);
 			float blue = get_color(0, offset, classes);
@@ -242,7 +327,7 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 			rgb[0] = red;
 			rgb[1] = green;
 			rgb[2] = blue;
-			box b = dets[i].bbox;
+			box b = selected_detections[i].det.bbox;
 			//printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
 
 			int left = (b.x - b.w / 2.)*im.w;
@@ -263,12 +348,21 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 
 			draw_box_width(im, left, top, right, bot, width, red, green, blue);
 			if (alphabet) {
+				char labelstr[4096] = { 0 };
+				strcat(labelstr, names[selected_detections[i].best_class]);
+				int j;
+				for (j = 0; j < classes; ++j) {
+					if (selected_detections[i].det.prob[j] > thresh && j != selected_detections[i].best_class) {
+						strcat(labelstr, ", ");
+						strcat(labelstr, names[j]);
+					}
+				}
 				image label = get_label_v3(alphabet, labelstr, (im.h*.03));
 				draw_label(im, top + width, left, label, rgb);
 				free_image(label);
 			}
-			if (dets[i].mask) {
-				image mask = float_to_image(14, 14, 1, dets[i].mask);
+			if (selected_detections[i].det.mask) {
+				image mask = float_to_image(14, 14, 1, selected_detections[i].det.mask);
 				image resized_mask = resize_image(mask, b.w*im.w, b.h*im.h);
 				image tmask = threshold_image(resized_mask, .5);
 				embed_image(tmask, im, left, top);
@@ -276,8 +370,8 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
 				free_image(resized_mask);
 				free_image(tmask);
 			}
-		}
 	}
+	free(selected_detections);
 }
 
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, image **alphabet, int classes)
@@ -856,7 +950,7 @@ image load_image_cv(char *filename, int channels)
         sprintf(buff, "echo %s >> bad.list", filename);
         system(buff);
         return make_image(10,10,3);
-        //exit(0);
+        //exit(EXIT_FAILURE);
     }
     image out = ipl_to_image(src);
     cvReleaseImage(&src);
@@ -873,19 +967,31 @@ image get_image_from_stream(CvCapture *cap)
     return im;
 }
 
-image get_image_from_stream_resize(CvCapture *cap, int w, int h, IplImage** in_img, int use_webcam)
+image get_image_from_stream_resize(CvCapture *cap, int w, int h, IplImage** in_img, int cpp_video_capture)
 {
 	IplImage* src;
-	if (use_webcam) src = get_webcam_frame(cap);
+	if (cpp_video_capture) {
+		static int once = 1;
+		if (once) {
+			once = 0;
+			do {
+				src = get_webcam_frame(cap);
+				if (!src) return make_empty_image(0, 0, 0);
+			} while (src->width < 1 || src->height < 1 || src->nChannels < 1);
+		} else
+			src = get_webcam_frame(cap);
+	}
 	else src = cvQueryFrame(cap);
 
 	if (!src) return make_empty_image(0, 0, 0);
+	if (src->width < 1 || src->height < 1 || src->nChannels < 1) return make_empty_image(0, 0, 0);
 	IplImage* new_img = cvCreateImage(cvSize(w, h), IPL_DEPTH_8U, 3);
 	*in_img = cvCreateImage(cvSize(src->width, src->height), IPL_DEPTH_8U, 3);
 	cvResize(src, *in_img, CV_INTER_LINEAR);
 	cvResize(src, new_img, CV_INTER_LINEAR);
 	image im = ipl_to_image(new_img);
 	cvReleaseImage(&new_img);
+	if (cpp_video_capture) cvReleaseImage(&src);
 	rgbgr_image(im);
 	return im;
 }
@@ -1585,7 +1691,11 @@ image load_image_stb(char *filename, int channels)
     unsigned char *data = stbi_load(filename, &w, &h, &c, channels);
     if (!data) {
         fprintf(stderr, "Cannot load image \"%s\"\nSTB Reason: %s\n", filename, stbi_failure_reason());
-        exit(0);
+		char buff[256];
+		sprintf(buff, "echo %s >> bad.list", filename);
+		system(buff);
+		return make_image(10, 10, 3);
+        //exit(EXIT_FAILURE);
     }
     if(channels) c = channels;
     int i,j,k;
@@ -1639,32 +1749,6 @@ image get_image_layer(image m, int l)
         out.data[i] = m.data[i+l*m.h*m.w];
     }
     return out;
-}
-
-float get_pixel(image m, int x, int y, int c)
-{
-    assert(x < m.w && y < m.h && c < m.c);
-    return m.data[c*m.h*m.w + y*m.w + x];
-}
-float get_pixel_extend(image m, int x, int y, int c)
-{
-    if(x < 0) x = 0;
-    if(x >= m.w) x = m.w-1;
-    if(y < 0) y = 0;
-    if(y >= m.h) y = m.h-1;
-    if(c < 0 || c >= m.c) return 0;
-    return get_pixel(m, x, y, c);
-}
-void set_pixel(image m, int x, int y, int c, float val)
-{
-    if (x < 0 || y < 0 || c < 0 || x >= m.w || y >= m.h || c >= m.c) return;
-    assert(x < m.w && y < m.h && c < m.c);
-    m.data[c*m.h*m.w + y*m.w + x] = val;
-}
-void add_pixel(image m, int x, int y, int c, float val)
-{
-    assert(x < m.w && y < m.h && c < m.c);
-    m.data[c*m.h*m.w + y*m.w + x] += val;
 }
 
 void print_image(image m)
