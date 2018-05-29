@@ -17,15 +17,11 @@
 // To use tracking - uncomment the following line. Tracking is supported only by OpenCV 3.x
 //#define TRACK_OPTFLOW
 
+//#include "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v9.1\include\cuda_runtime.h"
+//#pragma comment(lib, "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v9.1/lib/x64/cudart.lib")
+//static std::shared_ptr<image_t> device_ptr(NULL, [](void *img) { cudaDeviceReset(); });
 
-#define OPENCV
-#define GPU
-
-#include "yolo_v2_class.hpp"	    // imported functions from DLL
-#include "object.hpp"		    // FSD Object
-#include "client.h"                 // Jussie & Alex: UDP/TCP Connector 
-
-#include <pylon/PylonIncludes.h>    // Pylon SDK
+#include "yolo_v2_class.hpp"	// imported functions from DLL
 
 #ifdef OPENCV
 #include <opencv2/opencv.hpp>			// C++
@@ -47,8 +43,6 @@
 #pragma comment(lib, "opencv_imgproc" OPENCV_VERSION ".lib")
 #pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
 #endif	// CV_VERSION_EPOCH
-
-
 
 class track_kalman {
 public:
@@ -105,6 +99,9 @@ public:
 	}
 
 };
+
+
+
 
 class extrapolate_coords_t {
 public:
@@ -226,136 +223,13 @@ std::vector<std::string> objects_names_from_file(std::string const filename) {
 	return file_lines;
 }
 
-/*double GetFrameRate(Pylon::CInstantCamera cam)
-{
-    if (GenApi::IsAvailable(cam.GetNodeMap().GetNode("ResultingFrameRateAbs")))
-    {
-        return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
-    }
-    else return GenApi::CFloatPtr(cam.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
-}*/
-
-enum Distance_Strategy {
-	CONE_HEIGHT,
-	CONE_WIDTH
-};
-
-object_list_t * bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat )
-{	
-	// Dirty conversion before adjusting bbox_t
-
-	const double image_height = 1024.0; 
-	const double image_width  = 1280.0;
-
-	// AOV calculated in 
-	// https://drive.google.com/open?id=1yfDZr2MJyqkEoziy0suvq2ejFtKxsR_Ukpk-Wdw1F5k
-	// DEGREES
-        //const double h_AOV 		  = 75.3937;
-	//const double v_AOV 		  = 63.5316;
-        // RADIANS
-        const double h_AOV        = 0.0229662;
-        const double v_AOV        = 0.0193528;
-
-	// All sensor and lens measures are in μm
-
-	const double focal_length  = 4000.0;
-	const double sensor_width  = 6182.4;
-	const double sensor_height = 4953.6;
-
-	// Cone measurements also in μm
-
-	const double small_cone_width  = 228000.0;
-	const double small_cone_height = 325000.0;
-
-	const double large_cone_width  = 285000.0;
-	const double large_cone_height = 505000.0; 
-
-	//Create list with length of detection vector
-	//object_list_t *cones = object_list__new(boxes.size());
-	object_list_t * cones = object_list__new_default();
-
-	switch( strat )
-	{
-		case CONE_HEIGHT:
-
-			// Calculate Distances with cone height
-			for( bbox_t& box : boxes )
-			{	
-				//std::cout << "Trying the height" << std::endl;
-				//std::cout << "Box Height: " << (box.h / image_height) << std::endl;
-				const double height_on_sensor = (box.h / image_height) * sensor_height;
-				double perpendicular_distance;
-                                double direct_distance;
-
-				// Angles in FZModell-Koordinaten
-				double angle     = ( box.x / cone_width ) * (- h_AOV) + ( h_AOV / 2.0);
-				//double angle_yaw = ( box.y / cone_height ) * (- v_AOV) + ( v_AOV / 2); 
-
-				if(box.obj_id > 2) {
-					perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;
-				}
-				else perpendicular_distance = ((small_cone_height * focal_length) / height_on_sensor) / 1000000.0;
-
-                                direct_distance = perpendicular_distance / std::cos(angle);
-
-				object_t temp = object__new();
-				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
-                                object__init( &temp, direct_distance, angle, box.w, box.obj_id );
-				object_list__push_back_copy( cones, &temp );
-			}
-			break;
-
-		case CONE_WIDTH:
-
-			// Calculate Distances with cone width
-			for( bbox_t& box : boxes )
-			{
-				const double width_on_sensor = (box.w / image_width) * sensor_width;
-				double perpendicular_distance;
-                                double direct_distance;
-
-				// Angles in FZModell-Koordinaten
-				double angle     = ( box.x / cone_width ) * (- h_AOV) + ( h_AOV / 2.0);
-				//double angle_yaw = ( box.y / cone_height ) * (- v_AOV) + ( v_AOV / 2); 
-
-				if(box.obj_id > 2) {
-					perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
-				}
-				else perpendicular_distance = ((small_cone_width * focal_length) / width_on_sensor) / 1000000.0;
-
-                                direct_distance = perpendicular_distance / std::cos(angle);
-
-				object_t temp = object__new();
-				//object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
-                                object__init( &temp, direct_distance, angle, box.w, box.obj_id );
-				object_list__push_back_copy( cones, &temp );
-			}
-			break;
-		default:
-			std::cout << "Please use a valid Distance Extimation Strategy." << std::endl;
-			std::cout << "Possible Values: CONE_WIDTH, CONE_HEIGHT" << std::endl;
-			break;
-	}
-		
-	return cones;
-}
 
 int main(int argc, char *argv[])
 {
-<<<<<<< ours
-	std::string  names_file = "../data/small-cones.names";
-	std::string  cfg_file = "../cfg/mm-test_nano-304-yolo-voc.cfg";
-	std::string  weights_file = "../mm-test_nano-304-yolo-voc_final.weights";
-=======
 	std::string  names_file = "data/coco.names";
 	std::string  cfg_file = "cfg/yolov3.cfg";
 	std::string  weights_file = "yolov3.weights";
->>>>>>> theirs
 	std::string filename;
-
-	const char * demo_opt = "pylon";
-
-	int pylon_demo = 0;
 
 	if (argc > 4) {	//voc.names yolo-voc.cfg yolo-voc.weights test.mp4		
 		names_file = argv[1];
@@ -363,10 +237,6 @@ int main(int argc, char *argv[])
 		weights_file = argv[3];
 		filename = argv[4];
 	}
-	else if ((argc > 1) && (std::strcmp(demo_opt, argv[1]) == 0))
-	{	
-		pylon_demo = 0;
-	}   
 	else if (argc > 1) filename = argv[1];
 
 	float const thresh = (argc > 5) ? std::stof(argv[5]) : 0.20;
@@ -376,315 +246,30 @@ int main(int argc, char *argv[])
 	auto obj_names = objects_names_from_file(names_file);
 	std::string out_videofile = "result.avi";
 	bool const save_output_videofile = true;
-        
-    // Initialize Pylon
-    Pylon::PylonAutoInitTerm autoInitTerm;
-
 #ifdef TRACK_OPTFLOW
 	Tracker_optflow tracker_flow;
 	detector.wait_stream = true;
 #endif
 
 	while (true) 
-	{	
-
-		if(!pylon_demo)
-		{
-
+	{		
 		std::cout << "input image or video filename: ";
-		if(filename.size() == 0) std::cin >> filename; std::cout << "File Name: " << filename << "\n";
+		if(filename.size() == 0) std::cin >> filename;
 		if (filename.size() == 0) break;
-
+		
 		try {
 #ifdef OPENCV
-	        extrapolate_coords_t extrapolate_coords;
-	        bool extrapolate_flag = false;
-	        float cur_time_extrapolate = 0, old_time_extrapolate = 0;
-	        preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
-	        bool show_small_boxes = false;
+			extrapolate_coords_t extrapolate_coords;
+			bool extrapolate_flag = false;
+			float cur_time_extrapolate = 0, old_time_extrapolate = 0;
+			preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
+			bool show_small_boxes = false;
 
-	        std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
-	        std::string const protocol = filename.substr(0, 7);
-	        if (file_ext == "avi" || file_ext == "mp4" || file_ext == "mjpg" || file_ext == "mov" ||    // video file
-	            protocol == "rtmp://" || protocol == "rtsp://" || protocol == "http://" || protocol == "https:/")   // video network stream
-	        {
-	            cv::Mat cap_frame, cur_frame, det_frame, write_frame;
-	            std::queue<cv::Mat> track_optflow_queue;
-	            int passed_flow_frames = 0;
-	            std::shared_ptr<image_t> det_image;
-	            std::vector<bbox_t> result_vec, thread_result_vec;
-	            detector.nms = 0.02;    // comment it - if track_id is not required
-	            std::atomic<bool> consumed, videowrite_ready;
-	            bool exit_flag = false;
-	            consumed = true;
-	            videowrite_ready = true;
-	            std::atomic<int> fps_det_counter, fps_cap_counter;
-	            fps_det_counter = 0;
-	            fps_cap_counter = 0;
-	            int current_det_fps = 0, current_cap_fps = 0;
-	            std::thread t_detect, t_cap, t_videowrite;
-	            std::mutex mtx;
-	            std::condition_variable cv_detected, cv_pre_tracked;
-	            std::chrono::steady_clock::time_point steady_start, steady_end;
-	            cv::VideoCapture cap(filename); cap >> cur_frame;
-	            int const video_fps = cap.get(CV_CAP_PROP_FPS);
-	            cv::Size const frame_size = cur_frame.size();
-	            cv::VideoWriter output_video;
-	            if (save_output_videofile)
-	                output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
-
-	            while (!cur_frame.empty()) 
-	            {
-	                // always sync
-	                if (t_cap.joinable()) {
-	                    t_cap.join();
-	                    ++fps_cap_counter;
-	                    cur_frame = cap_frame.clone();
-	                }
-	                t_cap = std::thread([&]() { cap >> cap_frame; });
-	                ++cur_time_extrapolate;
-
-	                // swap result bouned-boxes and input-frame
-	                if(consumed)
-	                {
-	                    std::unique_lock<std::mutex> lock(mtx);
-	                    det_image = detector.mat_to_image_resize(cur_frame);
-	                    auto old_result_vec = detector.tracking_id(result_vec);
-	                    auto detected_result_vec = thread_result_vec;
-	                    result_vec = detected_result_vec;
-	#ifdef TRACK_OPTFLOW
-	                    // track optical flow
-	                    if (track_optflow_queue.size() > 0) {
-	                        //std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
-	                        cv::Mat first_frame = track_optflow_queue.front();
-	                        tracker_flow.update_tracking_flow(track_optflow_queue.front(), result_vec);
-
-	                        while (track_optflow_queue.size() > 1) {
-	                            track_optflow_queue.pop();
-	                            result_vec = tracker_flow.tracking_flow(track_optflow_queue.front(), true);
-	                        }
-	                        track_optflow_queue.pop();
-	                        passed_flow_frames = 0;
-
-	                        result_vec = detector.tracking_id(result_vec);
-	                        auto tmp_result_vec = detector.tracking_id(detected_result_vec, false);
-	                        small_preview.set(first_frame, tmp_result_vec);
-
-	                        extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
-	                        old_time_extrapolate = cur_time_extrapolate;
-	                        extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
-	                    }
-	#else
-	                    result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
-	                    extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
-	#endif
-	                    // add old tracked objects
-	                    for (auto &i : old_result_vec) {
-	                        auto it = std::find_if(result_vec.begin(), result_vec.end(),
-	                            [&i](bbox_t const& b) { return b.track_id == i.track_id && b.obj_id == i.obj_id; });
-	                        bool track_id_absent = (it == result_vec.end());
-	                        if (track_id_absent) {
-	                            if (i.frames_counter-- > 1)
-	                                result_vec.push_back(i);
-	                        }
-	                        else {
-	                            it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
-	                        }
-	                    }
-	#ifdef TRACK_OPTFLOW
-	                    tracker_flow.update_cur_bbox_vec(result_vec);
-	                    result_vec = tracker_flow.tracking_flow(cur_frame, true);   // track optical flow
-	#endif
-	                    consumed = false;
-	                    cv_pre_tracked.notify_all();
-	                }
-	                // launch thread once - Detection
-	                if (!t_detect.joinable()) {
-	                    t_detect = std::thread([&]() {
-	                        auto current_image = det_image;
-	                        consumed = true;
-	                        while (current_image.use_count() > 0 && !exit_flag) {
-	                            auto result = detector.detect_resized(*current_image, frame_size.width, frame_size.height, 
-	                                thresh, false); // true
-	                            ++fps_det_counter;
-	                            std::unique_lock<std::mutex> lock(mtx);
-	                            thread_result_vec = result;
-	                            consumed = true;
-	                            cv_detected.notify_all();
-	                            if (detector.wait_stream) {
-	                                while (consumed && !exit_flag) cv_pre_tracked.wait(lock);
-	                            }
-	                            current_image = det_image;
-	                        }
-	                    });
-	                }
-	                //while (!consumed);    // sync detection
-
-	                if (!cur_frame.empty()) {
-	                    steady_end = std::chrono::steady_clock::now();
-	                    if (std::chrono::duration<double>(steady_end - steady_start).count() >= 1) {
-	                        current_det_fps = fps_det_counter;
-	                        current_cap_fps = fps_cap_counter;
-	                        steady_start = steady_end;
-	                        fps_det_counter = 0;
-	                        fps_cap_counter = 0;
-	                    }
-
-	                    large_preview.set(cur_frame, result_vec);
-	#ifdef TRACK_OPTFLOW
-	                    ++passed_flow_frames;
-	                    track_optflow_queue.push(cur_frame.clone());
-	                    result_vec = tracker_flow.tracking_flow(cur_frame); // track optical flow
-	                    extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
-	                    small_preview.draw(cur_frame, show_small_boxes);
-	#endif                      
-	                    auto result_vec_draw = result_vec;
-	                    if (extrapolate_flag) {
-	                        result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
-	                        cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
-	                    }
-	                    draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
-	                    show_console_result(result_vec, obj_names);
-	                    large_preview.draw(cur_frame);
-
-	                    cv::imshow("window name", cur_frame);
-	                    int key = cv::waitKey(3);   // 3 or 16ms
-	                    if (key == 'f') show_small_boxes = !show_small_boxes;
-	                    if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
-	                    if (key == 'e') extrapolate_flag = !extrapolate_flag;
-	                    if (key == 27) { exit_flag = true; break; }
-
-	                    if (output_video.isOpened() && videowrite_ready) {
-	                        if (t_videowrite.joinable()) t_videowrite.join();
-	                        write_frame = cur_frame.clone();
-	                        videowrite_ready = false;
-	                        t_videowrite = std::thread([&]() { 
-	                             output_video << write_frame; videowrite_ready = true;
-	                        });
-	                    }
-	                }
-
-	#ifndef TRACK_OPTFLOW
-	                // wait detection result for video-file only (not for net-cam)
-	                if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") {
-	                    std::unique_lock<std::mutex> lock(mtx);
-	                    while (!consumed) cv_detected.wait(lock);
-	                }
-	#endif
-	            }
-	            exit_flag = true;
-	            if (t_cap.joinable()) t_cap.join();
-	            if (t_detect.joinable()) t_detect.join();
-	            if (t_videowrite.joinable()) t_videowrite.join();
-	            std::cout << "Video ended \n";
-	            break;
-	        }
-	        else if (file_ext == "txt") {   // list of image files
-	            std::ifstream file(filename);
-	            if (!file.is_open()) std::cout << "File not found! \n";
-	            else
-                    {  
-	                    int port{4242};
-                            std::string ip {"127.0.0.1"};
-                            connector::client< connector::UDP > sender( port, ip );
-                            sender.init();
-
-                            for (std::string line; file >> line;) {
-	                        std::cout << line << std::endl;
-	                        cv::Mat mat_img = cv::imread(line);
-	                        std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	                        show_console_result(result_vec, obj_names);
-
-	                    // Test width distance estimation
-			            object_list_t * width_objects = object_list__new(result_vec.size());
-			            width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
-			            
-			            // Test height distance estimation
-			            object_list_t * height_objects = object_list__new(result_vec.size());
-			            height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
-			            
-			            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
-		   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
-
-                                    int list_size = width_objects->size;
-                                    for( int j = 0; j < list_size; j++)
-                                    {
-                                        // Send Obj with Width DistanceStrat
-                                        sender.send_udp< object_t >( width_objects->elements[( list_size - 1 )]);
-                                        //Send Obj with Height DistanceStrat
-                                        sender.send_udp< object_t >( height_objects->elements[( list_size - 1 )]);
-                                    }
-                                    free(width_objects);
-                                    free(height_objects);
-
-                                    //draw_boxes(mat_img, result_vec, obj_names);
-	                    //cv::imwrite("res_" + line, mat_img);
-	                }
-	            }
-	        }
-	        else {  // image file
-	            cv::Mat mat_img = cv::imread(filename);
-	            std::vector<bbox_t> result_vec = detector.detect(mat_img);
-	            //result_vec = detector.tracking_id(result_vec);    // comment it - if track_id is not required
-	            draw_boxes(mat_img, result_vec, obj_names);
-	            cv::imshow("window name", mat_img);
-	            show_console_result(result_vec, obj_names);
-	            
-	            // Test width distance estimation
-	            object_list_t * width_objects = object_list__new(result_vec.size());
-	            width_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
-	            
-	            // Test height distance estimation
-	            object_list_t * height_objects = object_list__new(result_vec.size());
-	            height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
-	            
-	            std::cout << "Distance using Cone Width: " << width_objects->elements[(width_objects->size - 1)].distance << std::endl;
-   	            std::cout << "Distance using Cone Height: " << height_objects->elements[(height_objects->size - 1)].distance << std::endl;
-
-	            cv::waitKey(0);
-	        }
-	#else
-	        //std::vector<bbox_t> result_vec = detector.detect(filename);
-
-	        auto img = detector.load_image(filename);
-	        std::vector<bbox_t> result_vec = detector.detect(img);
-	        detector.free_image(img);
-	        show_console_result(result_vec, obj_names);
-	#endif          
-	    }
-	        catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
-	        catch (...) { std::cerr << "unknown exception \n"; getchar(); }
-	        filename.clear();
-		}
-		else
-		{	
-			try 
+			std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
+			std::string const protocol = filename.substr(0, 7);
+			if (file_ext == "avi" || file_ext == "mp4" || file_ext == "mjpg" || file_ext == "mov" || 	// video file
+				protocol == "rtmp://" || protocol == "rtsp://" || protocol == "http://" || protocol == "https:/")	// video network stream
 			{
-<<<<<<< ours
-				// Pylon Demo Stuff
-	            //
-	            Pylon::CInstantCamera camera(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
-	            std::cout << "Camera Created.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
-
-	            Pylon::CImageFormatConverter formatConverter;
-	            formatConverter.OutputPixelFormat = Pylon::PixelType_BGR8packed;
-	            camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);
-
-	            Pylon::CPylonImage pylonImage;
-
-	            Pylon::CGrabResultPtr ptrGrabResult;
-	            
-	            extrapolate_coords_t extrapolate_coords;
-				bool extrapolate_flag = false;
-				float cur_time_extrapolate = 0, old_time_extrapolate = 0;
-				preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
-				bool show_small_boxes = false;
-
-				std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
-				std::string const protocol = filename.substr(0, 7);
-				if (file_ext == "avi" || file_ext == "mp4" || file_ext == "mjpg" || file_ext == "mov" || 	// video file
-					protocol == "rtmp://" || protocol == "rtsp://" || protocol == "http://" || protocol == "https:/")	// video network stream
-=======
 				cv::Mat cap_frame, cur_frame, det_frame, write_frame;
 				std::queue<cv::Mat> track_optflow_queue;
 				int passed_flow_frames = 0;
@@ -711,153 +296,63 @@ int main(int argc, char *argv[])
 					output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
 
 				while (!cur_frame.empty()) 
->>>>>>> theirs
 				{
-					cv::Mat cap_frame, cur_frame, det_frame, write_frame;
-					std::queue<cv::Mat> track_optflow_queue;
-					int passed_flow_frames = 0;
-					std::shared_ptr<image_t> det_image;
-					std::vector<bbox_t> result_vec, thread_result_vec;
-					detector.nms = 0.02;	// comment it - if track_id is not required
-					std::atomic<bool> consumed, videowrite_ready;
-					consumed = true;
-					videowrite_ready = true;
-					std::atomic<int> fps_det_counter, fps_cap_counter;
-					fps_det_counter = 0;
-					fps_cap_counter = 0;
-					int current_det_fps = 0, current_cap_fps = 0;
-					std::thread t_detect, t_cap, t_videowrite;
-					std::mutex mtx;
-					std::condition_variable cv_detected, cv_pre_tracked;
-					std::chrono::steady_clock::time_point steady_start, steady_end;
-					
-	                if(camera.IsGrabbing())
-	                {
-	                    camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
-	                    if( ptrGrabResult->GrabSucceeded())
-	                    {
-	                        formatConverter.Convert(pylonImage, ptrGrabResult);
-							cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
-	                        cur_frame = temp;                                    	
-							std::cout << "Cap Dims: " << ptrGrabResult->GetHeight() << " " << ptrGrabResult->GetWidth() << std::endl;
-					    }
-	                }
-	                                
-	                //cv::VideoCapture cap(filename); cap >> cur_frame;
-					int const video_fps = 60; //cap.get(CV_CAP_PROP_FPS);
-	                                
-		            int cam_video_fps;
-		            if (GenApi::IsAvailable(camera.GetNodeMap().GetNode("ResultingFrameRateAbs")))
-		            {
-		                cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRateAbs"))->GetValue();
-		            }
-		            else cam_video_fps = (int) GenApi::CFloatPtr(camera.GetNodeMap().GetNode("ResultingFrameRate"))->GetValue(); // BCON and USB use SFNC3 names
-					
-					std::cout << "Cam FPS: " << cam_video_fps << std::endl;                                
+					// always sync
+					if (t_cap.joinable()) {
+						t_cap.join();
+						++fps_cap_counter;
+						cur_frame = cap_frame.clone();
+					}
+					t_cap = std::thread([&]() { cap >> cap_frame; });
+					++cur_time_extrapolate;
 
-					cv::Size const frame_size = cur_frame.size();
-					std::cout << frame_size.width << " " << frame_size.height << std::endl;
-					cv::VideoWriter output_video;
-					if (save_output_videofile)
-						output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, cam_video_fps), frame_size, true);
-
-					while (!cur_frame.empty()) 
+					// swap result bouned-boxes and input-frame
+					if(consumed)
 					{
-						// always sync
-						if (t_cap.joinable()) {
-							t_cap.join();
-							++fps_cap_counter;
-							cur_frame = cap_frame.clone();
-						}
-						t_cap = std::thread([&]() 
-	                    { 
-	                        if(camera.IsGrabbing())
-	                        {
-	                            camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
-	                            if( ptrGrabResult->GrabSucceeded())
-	                            {
-	                                formatConverter.Convert(pylonImage, ptrGrabResult);
-	                                cv::Mat temp(ptrGrabResult->GetHeight(), ptrGrabResult->GetWidth(), CV_8UC3, (uint8_t *) pylonImage.GetBuffer());
+						std::unique_lock<std::mutex> lock(mtx);
+						det_image = detector.mat_to_image_resize(cur_frame);
+						auto old_result_vec = detector.tracking_id(result_vec);
+						auto detected_result_vec = thread_result_vec;
+						result_vec = detected_result_vec;
+#ifdef TRACK_OPTFLOW
+						// track optical flow
+						if (track_optflow_queue.size() > 0) {
+							//std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
+							cv::Mat first_frame = track_optflow_queue.front();
+							tracker_flow.update_tracking_flow(track_optflow_queue.front(), result_vec);
 
-		    						cap_frame = temp;
-		    					}
-	                        }
-	                    });
-						++cur_time_extrapolate;
-
-						// swap result bounded-boxes and input-frame
-						if(consumed)
-						{
-							std::unique_lock<std::mutex> lock(mtx);
-							det_image = detector.mat_to_image_resize(cur_frame);
-							auto old_result_vec = detector.tracking_id(result_vec);
-							auto detected_result_vec = thread_result_vec;
-							result_vec = detected_result_vec;
-	#ifdef TRACK_OPTFLOW
-							// track optical flow
-							if (track_optflow_queue.size() > 0) {
-								//std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
-								cv::Mat first_frame = track_optflow_queue.front();
-								tracker_flow.update_tracking_flow(track_optflow_queue.front(), result_vec);
-
-								while (track_optflow_queue.size() > 1) {
-									track_optflow_queue.pop();
-									result_vec = tracker_flow.tracking_flow(track_optflow_queue.front(), true);
-								}
+							while (track_optflow_queue.size() > 1) {
 								track_optflow_queue.pop();
-								passed_flow_frames = 0;
-
-								result_vec = detector.tracking_id(result_vec);
-								auto tmp_result_vec = detector.tracking_id(detected_result_vec, false);
-								small_preview.set(first_frame, tmp_result_vec);
-
-								extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
-								old_time_extrapolate = cur_time_extrapolate;
-								extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
+								result_vec = tracker_flow.tracking_flow(track_optflow_queue.front(), true);
 							}
-	#else
-							result_vec = detector.tracking_id(result_vec);	// comment it - if track_id is not required					
-							extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
-	#endif
-							// add old tracked objects
-							for (auto &i : old_result_vec) {
-								auto it = std::find_if(result_vec.begin(), result_vec.end(),
-									[&i](bbox_t const& b) { return b.track_id == i.track_id && b.obj_id == i.obj_id; });
-								bool track_id_absent = (it == result_vec.end());
-								if (track_id_absent) {
-									if (i.frames_counter-- > 1)
-										result_vec.push_back(i);
-								}
-								else {
-									it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
-								}
-							}
-	#ifdef TRACK_OPTFLOW
-							tracker_flow.update_cur_bbox_vec(result_vec);
-							result_vec = tracker_flow.tracking_flow(cur_frame, true);	// track optical flow
-	#endif
-							consumed = false;
-							cv_pre_tracked.notify_all();
+							track_optflow_queue.pop();
+							passed_flow_frames = 0;
+
+							result_vec = detector.tracking_id(result_vec);
+							auto tmp_result_vec = detector.tracking_id(detected_result_vec, false);
+							small_preview.set(first_frame, tmp_result_vec);
+
+							extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
+							old_time_extrapolate = cur_time_extrapolate;
+							extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
 						}
-<<<<<<< ours
-						// launch thread once - Detection
-						if (!t_detect.joinable()) {
-							t_detect = std::thread([&]() {
-								auto current_image = det_image;
-								consumed = true;
-								while (current_image.use_count() > 0) {
-									auto result = detector.detect_resized(*current_image, frame_size.width, frame_size.height, 
-										thresh, false);	// true
-									++fps_det_counter;
-									std::unique_lock<std::mutex> lock(mtx);
-									thread_result_vec = result;
-									consumed = true;
-									cv_detected.notify_all();
-									if (detector.wait_stream) {
-										while (consumed) cv_pre_tracked.wait(lock);
-									}
-									current_image = det_image;
-=======
+#else
+						result_vec = detector.tracking_id(result_vec);	// comment it - if track_id is not required					
+						extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
+#endif
+						// add old tracked objects
+						for (auto &i : old_result_vec) {
+							auto it = std::find_if(result_vec.begin(), result_vec.end(),
+								[&i](bbox_t const& b) { return b.track_id == i.track_id && b.obj_id == i.obj_id; });
+							bool track_id_absent = (it == result_vec.end());
+							if (track_id_absent) {
+								if (i.frames_counter-- > 1)
+									result_vec.push_back(i);
+							}
+							else {
+								it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
+							}
+						}
 #ifdef TRACK_OPTFLOW
 						tracker_flow.update_cur_bbox_vec(result_vec);
 						result_vec = tracker_flow.tracking_flow(cur_frame, true);	// track optical flow
@@ -880,64 +375,23 @@ int main(int argc, char *argv[])
 								cv_detected.notify_all();
 								if (detector.wait_stream) {
 									while (consumed && !exit_flag) cv_pre_tracked.wait(lock);
->>>>>>> theirs
 								}
-							});
+								current_image = det_image;
+							}
+						});
+					}
+					//while (!consumed);	// sync detection
+
+					if (!cur_frame.empty()) {
+						steady_end = std::chrono::steady_clock::now();
+						if (std::chrono::duration<double>(steady_end - steady_start).count() >= 1) {
+							current_det_fps = fps_det_counter;
+							current_cap_fps = fps_cap_counter;
+							steady_start = steady_end;
+							fps_det_counter = 0;
+							fps_cap_counter = 0;
 						}
-						//while (!consumed);	// sync detection
 
-						if (!cur_frame.empty()) {
-							steady_end = std::chrono::steady_clock::now();
-							if (std::chrono::duration<double>(steady_end - steady_start).count() >= 1) {
-								current_det_fps = fps_det_counter;
-								current_cap_fps = fps_cap_counter;
-								steady_start = steady_end;
-								fps_det_counter = 0;
-								fps_cap_counter = 0;
-							}
-
-<<<<<<< ours
-							large_preview.set(cur_frame, result_vec);
-	#ifdef TRACK_OPTFLOW
-							++passed_flow_frames;
-							track_optflow_queue.push(cur_frame.clone());
-							result_vec = tracker_flow.tracking_flow(cur_frame);	// track optical flow
-							extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
-							small_preview.draw(cur_frame, show_small_boxes);
-	#endif						
-							auto result_vec_draw = result_vec;
-							if (extrapolate_flag) {
-								result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
-								cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
-							}
-							draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
-							
-
-							show_console_result(result_vec, obj_names);
-							
-							// Make Results always be on top of Console
-							std::cout << "\033[2J";
-	   		    			std::cout << "\033[1;1H";		
-
-							large_preview.draw(cur_frame);
-
-							//cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
-
-							cv::imshow("OpenCV Display Window", cur_frame);
-							int key = cv::waitKey(3);	// 3 or 16ms
-							if (key == 'f') show_small_boxes = !show_small_boxes;
-							if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
-							if (key == 'e') extrapolate_flag = !extrapolate_flag;
-
-							if (output_video.isOpened() && videowrite_ready) {
-								if (t_videowrite.joinable()) t_videowrite.join();
-								write_frame = cur_frame.clone();
-								videowrite_ready = false;
-								t_videowrite = std::thread([&]() { 
-									 output_video << write_frame; videowrite_ready = true;
-								});
-							}
-=======
 						large_preview.set(cur_frame, result_vec);
 #ifdef TRACK_OPTFLOW
 						++passed_flow_frames;
@@ -969,25 +423,17 @@ int main(int argc, char *argv[])
 							t_videowrite = std::thread([&]() { 
 								 output_video << write_frame; videowrite_ready = true;
 							});
->>>>>>> theirs
 						}
-
-	#ifndef TRACK_OPTFLOW
-						// wait detection result for video-file only (not for net-cam)
-						if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") {
-							std::unique_lock<std::mutex> lock(mtx);
-							while (!consumed) cv_detected.wait(lock);
-						}
-	#endif
 					}
-					if (t_cap.joinable()) t_cap.join();
-					if (t_detect.joinable()) t_detect.join();
-					if (t_videowrite.joinable()) t_videowrite.join();
-					std::cout << "Video ended \n";
+
+#ifndef TRACK_OPTFLOW
+					// wait detection result for video-file only (not for net-cam)
+					if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") {
+						std::unique_lock<std::mutex> lock(mtx);
+						while (!consumed) cv_detected.wait(lock);
+					}
+#endif
 				}
-<<<<<<< ours
-			}
-=======
 				exit_flag = true;
 				if (t_cap.joinable()) t_cap.join();
 				if (t_detect.joinable()) t_detect.join();
@@ -1033,11 +479,10 @@ int main(int argc, char *argv[])
 			show_console_result(result_vec, obj_names);
 #endif			
 		}
->>>>>>> theirs
 		catch (std::exception &e) { std::cerr << "exception: " << e.what() << "\n"; getchar(); }
 		catch (...) { std::cerr << "unknown exception \n"; getchar(); }
 		filename.clear();
-		}
 	}
+
 	return 0;
 }

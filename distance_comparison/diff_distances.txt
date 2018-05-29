@@ -1,0 +1,30 @@
+10c10
+< yellow-cone - obj_id = 1,  x = 686, y = 707, w = 151, h = 175, prob = 0.537, distance_width = 1.25, distance_height = 1.53734
+---
+> yellow-cone - obj_id = 1,  x = 686, y = 707, w = 151, h = 175, prob = 0.537, distance_width = 1.25, distance_height = 1.53562
+14c14
+< yellow-cone - obj_id = 1,  x = 703, y = 680, w = 160, h = 178, prob = 0.381, distance_width = 1.18, distance_height = 1.51291
+---
+> yellow-cone - obj_id = 1,  x = 703, y = 680, w = 160, h = 178, prob = 0.381, distance_width = 1.18, distance_height = 1.50974
+21c21
+< yellow-cone - obj_id = 1,  x = 12, y = 596, w = 63, h = 121, prob = 0.479, distance_width = 3.75, distance_height = 2.78055
+---
+> yellow-cone - obj_id = 1,  x = 12, y = 596, w = 63, h = 121, prob = 0.479, distance_width = 3, distance_height = 2.22108
+25,26c25,26
+< yellow-cone - obj_id = 1,  x = 682, y = 744, w = 147, h = 188, prob = 0.558, distance_width = 1.29, distance_height = 1.43077
+< yellow-cone - obj_id = 1,  x = 0, y = 613, w = 29, h = 121, prob = 0.316, distance_width = 8.23, distance_height = 2.80685
+---
+> yellow-cone - obj_id = 1,  x = 682, y = 744, w = 147, h = 188, prob = 0.558, distance_width = 1.28, distance_height = 1.42944
+> yellow-cone - obj_id = 1,  x = 0, y = 613, w = 29, h = 121, prob = 0.316, distance_width = 6.51, distance_height = 2.22109
+30c30
+< yellow-cone - obj_id = 1,  x = 682, y = 727, w = 155, h = 181, prob = 0.441, distance_width = 1.22, distance_height = 1.4861
+---
+> yellow-cone - obj_id = 1,  x = 682, y = 727, w = 155, h = 181, prob = 0.441, distance_width = 1.22, distance_height = 1.48472
+34c34
+< yellow-cone - obj_id = 1,  x = 753, y = 717, w = 130, h = 158, prob = 0.795, distance_width = 1.46, distance_height = 1.71239
+---
+> yellow-cone - obj_id = 1,  x = 753, y = 717, w = 130, h = 158, prob = 0.795, distance_width = 1.45, distance_height = 1.70085
+38c38
+< yellow-cone - obj_id = 1,  x = 610, y = 737, w = 176, h = 202, prob = 0.708, distance_width = 1.07, distance_height = 1.331
+---
+> yellow-cone - obj_id = 1,  x = 610, y = 737, w = 176, h = 202, prob = 0.708, distance_width = 1.07, distance_height = 1.33037

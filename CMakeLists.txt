@@ -98,12 +98,14 @@ endif()
 
 find_package(OpenCV REQUIRED)
 find_package(Threads)
+find_package(Boost COMPONENTS program_options REQUIRED)
 
 include_directories(
     ${OpenCV_INCLUDE_DIRS}
     ${CUDA_INCLUDE_DIRS}
     ${CUDNN_INCLUDE_DIRS}
     ${PYLON_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIR}
     src
 )
 
@@ -115,12 +117,15 @@ link_directories(
 )
 
 add_executable(main
-    src/yolo_console_dll.cpp
+    src/basler-demo.cpp
+    #src/yolo_console_dll.cpp
     #main.cpp
     #src/yolo_v2_class.cpp
     src/yolo_v2_class.hpp
-    src/object.hpp
-    src/object.cpp
+    src/object.h
+    # Old Dirty, dirty FSD Object
+    #src/object.hpp
+    #src/object.cpp
     
 )
 
@@ -129,6 +134,7 @@ target_link_libraries(main
     ${PYLON_LIBRARIES} 
     ${CUDNN_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_LIBRARIES}
     darknet
     cuda 
     cudart 

@@ -1,0 +1,33 @@
+1a2
+> Trying to initialize Pylon
+10c11,12
+< yellow-cone - obj_id = 1,  x = 686, y = 707, w = 151, h = 175, prob = 0.537, distance_width = 1.25, distance_height = 1.53734
+---
+> yellow-cone - obj_id = 1,  x = 160, y = 663, w = 151, h = 205, prob = 0.479, distance_width = 1.42, distance_height = 1.48847
+> yellow-cone - obj_id = 1,  x = 686, y = 697, w = 151, h = 192, prob = 0.44, distance_width = 1.25, distance_height = 1.40122
+14c16
+< yellow-cone - obj_id = 1,  x = 703, y = 680, w = 160, h = 178, prob = 0.381, distance_width = 1.18, distance_height = 1.51291
+---
+> yellow-cone - obj_id = 1,  x = 711, y = 677, w = 151, h = 192, prob = 0.543, distance_width = 1.25, distance_height = 1.40339
+17a20
+> yellow-cone - obj_id = 1,  x = 404, y = 148, w = 50, h = 87, prob = 0.365, distance_width = 3.89, distance_height = 3.18209
+21d23
+< yellow-cone - obj_id = 1,  x = 12, y = 596, w = 63, h = 121, prob = 0.479, distance_width = 3.75, distance_height = 2.78055
+25,26c27
+< yellow-cone - obj_id = 1,  x = 682, y = 744, w = 147, h = 188, prob = 0.558, distance_width = 1.29, distance_height = 1.43077
+< yellow-cone - obj_id = 1,  x = 0, y = 613, w = 29, h = 121, prob = 0.316, distance_width = 8.23, distance_height = 2.80685
+---
+> yellow-cone - obj_id = 1,  x = 686, y = 741, w = 143, h = 208, prob = 0.636, distance_width = 1.32, distance_height = 1.29344
+30c31
+< yellow-cone - obj_id = 1,  x = 682, y = 727, w = 155, h = 181, prob = 0.441, distance_width = 1.22, distance_height = 1.4861
+---
+> yellow-cone - obj_id = 1,  x = 686, y = 724, w = 151, h = 192, prob = 0.568, distance_width = 1.25, distance_height = 1.40122
+34c35,36
+< yellow-cone - obj_id = 1,  x = 753, y = 717, w = 130, h = 158, prob = 0.795, distance_width = 1.46, distance_height = 1.71239
+---
+> yellow-cone - obj_id = 1,  x = 757, y = 714, w = 130, h = 171, prob = 0.736, distance_width = 1.46, distance_height = 1.58298
+> yellow-cone - obj_id = 1,  x = 804, y = 690, w = 58, h = 60, prob = 0.274, distance_width = 3.3, distance_height = 4.54332
+38c40
+< yellow-cone - obj_id = 1,  x = 610, y = 737, w = 176, h = 202, prob = 0.708, distance_width = 1.07, distance_height = 1.331
+---
+> yellow-cone - obj_id = 1,  x = 606, y = 741, w = 185, h = 218, prob = 0.769, distance_width = 1.02, distance_height = 1.23348

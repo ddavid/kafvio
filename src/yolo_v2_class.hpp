@@ -28,7 +28,7 @@ struct image_t {
 	float *data;				// pointer to the image data
 };
 
-#include "object.hpp"
+#include "object.h"
 
 #ifdef __cplusplus
 #include <memory>
