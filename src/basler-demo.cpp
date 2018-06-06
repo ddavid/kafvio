@@ -227,67 +227,58 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     {
         case CONE_HEIGHT:
 
-            std::cout << "Calculating using Height" << std::endl;
-                        // Calculate Distances with cone height
+            //std::cout << "Calculating using Height" << std::endl;
+            // Calculate Distances with cone height
             for( bbox_t& box : boxes )
             {   
-                //std::cout << "Trying the height" << std::endl;
-                //std::cout << "Box Height: " << (box.h / image_height) << std::endl;
                 const double height_on_sensor = (box.h / image_height) * sensor_height;
                 double perpendicular_distance;
-                                double straight_distance;
+                double straight_distance;
 
                 // Angles in FZModell-Koordinaten
                 double angle     = ( box.x / image_width ) * (- h_AOV) + ( h_AOV / 2);
-                //double angle_yaw = ( box.y / image_height ) * (- v_AOV) + ( v_AOV / 2);
+
 
                 if(box.obj_id > 2) perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;  
                 else  perpendicular_distance = ((small_cone_height * focal_length) / height_on_sensor) / 1000000.0;
 
-                                straight_distance = perpendicular_distance / std::cos( angle );
+                straight_distance = perpendicular_distance / std::cos( angle );
 
                 object_t temp;
-                                temp.distance = straight_distance;
-                                temp.angle    = angle;
-                                temp.type     = box.obj_id;
-                //object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
-                                //object__init( &temp, straight_distance, angle, box.w, box.obj_id );
+                temp.distance = straight_distance;
+                temp.angle    = angle;
+                temp.type     = box.obj_id;
 
-                //object_list__push_back_copy( cones, &temp );
-                                cones.element[index] = temp;
-                                index++;
+                cones.element[index] = temp;
+                index++;
             }
             break;
 
         case CONE_WIDTH:
 
-            std::cout << "Calculating using Width" << std::endl;
+            //std::cout << "Calculating using Width" << std::endl;
             // Calculate Distances with cone width
             for( bbox_t& box : boxes )
             {
                 const double width_on_sensor = (box.w / image_width) * sensor_width;
                 double perpendicular_distance;
-                                double straight_distance;
+                double straight_distance;
 
-                                // Angles in FZModell-Koordinaten
+                // Angles in FZModell-Koordinaten
                 double angle     = ( box.x / image_width ) * (- h_AOV) + ( h_AOV / 2);
-                //double angle_yaw = ( box.y / image_height ) * (- v_AOV) + ( v_AOV / 2);
                 
-                                if(box.obj_id > 2) perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
+                if(box.obj_id > 2) perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
                 else perpendicular_distance = ((small_cone_width * focal_length) / width_on_sensor) / 1000000.0;
 
-                                straight_distance = perpendicular_distance / std::cos( angle );
+                straight_distance = perpendicular_distance / std::cos( angle );
 
-                    object_t temp;
-                                temp.distance = straight_distance;
-                                temp.angle    = angle;
-                                temp.type     = box.obj_id;
-                //object__init( &temp, perpendicular_distance, angle, box.w, box.obj_id );
-                                //object__init( &temp, straight_distance, angle, box.w, box.obj_id );
+                object_t temp;
+                temp.distance = straight_distance;
+                temp.angle    = angle;
+                temp.type     = box.obj_id;
 
-                //object_list__push_back_copy( cones, &temp );
-                                cones.element[index] = temp;
-                                index++;
+                cones.element[index] = temp;
+                index++;
     
                 }
             break;
@@ -300,28 +291,33 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     return cones;
 }
 
-void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, 
-    int current_det_fps = -1, int current_cap_fps = -1)
+void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, int current_det_fps = -1, int current_cap_fps = -1)
 {
+    object_list_t height_objects = bbox_into_object_list( result_vec, Distance_Strategy::CONE_HEIGHT);
+
+    int index = 0;
     int const colors[6][3] = { { 1,0,1 },{ 0,0,1 },{ 0,1,1 },{ 0,1,0 },{ 1,1,0 },{ 1,0,0 } };
 
     for (auto &i : result_vec) {
         cv::Scalar color = obj_id_to_color(i.obj_id);
         cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
         if (obj_names.size() > i.obj_id) {
-            std::string obj_name = obj_names[i.obj_id];
-            if (i.track_id > 0) obj_name += " - " + std::to_string(i.track_id);
-            cv::Size const text_size = getTextSize(obj_name, cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, 2, 0);
+            std::string obj_caption = std::to_string(height_objects.element[index].distance);
+            if (i.track_id > 0) std::to_string(height_objects.element[index].distance) += " - " + std::to_string(i.track_id);
+            cv::Size const text_size = getTextSize(obj_caption, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, 0);
             int const max_width = (text_size.width > i.w + 2) ? text_size.width : (i.w + 2);
             cv::rectangle(mat_img, cv::Point2f(std::max((int)i.x - 1, 0), std::max((int)i.y - 30, 0)), 
                 cv::Point2f(std::min((int)i.x + max_width, mat_img.cols-1), std::min((int)i.y, mat_img.rows-1)), 
                 color, CV_FILLED, 8, 0);
-            putText(mat_img, obj_name, cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(0, 0, 0), 2);
+            // Yellow captions in black
+            if (i.obj_id == 0) putText(mat_img, obj_caption, cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
+            else putText(mat_img, obj_caption, cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 255, 255), 2);
         }
+        ++index;
     }
     if (current_det_fps >= 0 && current_cap_fps >= 0) {
         std::string fps_str = "FPS detection: " + std::to_string(current_det_fps) + "   FPS capture: " + std::to_string(current_cap_fps);
-        putText(mat_img, fps_str, cv::Point2f(10, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.2, cv::Scalar(50, 255, 0), 2);
+        putText(mat_img, fps_str, cv::Point2f(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
     }
 }
 #endif  // OPENCV
@@ -362,36 +358,26 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
         
 }
 
-/*
-void show_console_result_distances(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names, connector::client< connector::UDP > & sender) {
-    
-        int count = 1;
-        
-        // Width distance estimation
-        object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
-        //Height distance estimation
-        object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
-        
-        for (auto &i : result_vec) 
-        {
-        if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
-        std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
-                  << ", w = " << i.w << ", h = " << i.h
-              << std::setprecision(3) << ", prob = " << i.prob 
-                      << ", distance_width = " << width_objects.element[count].distance << std::setprecision(6) 
-                      << ", distance_height = " << height_objects.element[count].distance << std::endl;
-               
-            sender.send_udp< object_t >( width_objects.element[count]);
-            sender.send_udp< object_t >( height_objects.element[count]);
+void show_console_result_CLARA_test(std::vector<bbox_t> const result_vec, std::vector<std::string> const obj_names)
+{
+    int count = 0;
 
-            count++;
+    //Height distance estimation
+    object_list_t height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
+
+    for (auto &i : result_vec)
+    {
+        // Distance
+        std::cout << height_objects.element[count].distance << std::setprecision(6)
+        << "," <<
+        // Id
+        i.obj_id
+        << "," <<
+        // Angle
+        height_objects.element[count].angle << std::endl;
+        ++count;
     }
-        
-        //free(width_objects);
-        //free(height_objects);
-        
 }
-*/
 
 void send_objects_tcp(std::vector<bbox_t> const result_vec, connector::client< connector::TCP > & sender, Distance_Strategy strat) {
     
@@ -448,14 +434,17 @@ int main(int argc, char *argv[])
     float             thresh;
     int               undistort;
     int               strategy_index;
+
+    long              frame_counter = 0;
+
     Distance_Strategy distance_strategy;
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
-        ("classes", po::value<std::string>(&names_file)->default_value("../data/small-cones.names"), ".txt or .list file with one class name per line")
-        ("config", po::value<std::string>(&cfg_file)->default_value("../cfg/mm-test_nano-304-yolo-voc.cfg"),  "Darknet .cfg file")
-        ("weights", po::value<std::string>(&weights_file)->default_value("../mm-test_nano-304-yolo-voc_final.weights"), "Darknet .weights file")
+        ("classes", po::value<std::string>(&names_file)->default_value("../data/cones.names"), ".txt or .list file with one class name per line")
+        ("config", po::value<std::string>(&cfg_file)->default_value("../cfg/bigger-steps_rollout_yolov3-tiny.cfg"),  "Darknet .cfg file")
+        ("weights", po::value<std::string>(&weights_file)->default_value("../rollout_transfer-weights_26000.weights"), "Darknet .weights file")
         ("image_file", po::value<std::string>(&filename)->default_value("demo.jpg"), "Single Image file to run detection on")
         ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
         ("video_file", po::value<std::string>(&filename), "Single Video file to run detection on")
@@ -582,7 +571,7 @@ int main(int argc, char *argv[])
         try {
 #ifdef OPENCV
             extrapolate_coords_t extrapolate_coords;
-            bool extrapolate_flag = false;
+            bool extrapolate_flag = true;
             float cur_time_extrapolate = 0, old_time_extrapolate = 0;
             preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
             bool show_small_boxes = false;
@@ -772,8 +761,8 @@ int main(int argc, char *argv[])
                         {
                             large_preview.draw(cur_frame);
 
-                        cv::imshow("window name", cur_frame);
-                        int key = cv::waitKey(3);   // 3 or 16ms
+                            cv::imshow("window name", cur_frame);
+                            int key = cv::waitKey(3);   // 3 or 16ms
                         if (key == 'f') show_small_boxes = !show_small_boxes;
                         if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
                         if (key == 'e') extrapolate_flag = !extrapolate_flag;
@@ -805,38 +794,53 @@ int main(int argc, char *argv[])
                 if (t_videowrite.joinable()) t_videowrite.join();
                 std::cout << "Video ended \n";
                 break;
+                return 0;
             }
             else if (file_ext == "txt")
                 {   // list of image files
+                std::cout << "Starting List File calculations" << std::endl;
                 std::ifstream file(filename);
                 if (!file.is_open()) std::cout << "File not found! \n";
                 else
                     {  
-                        for (std::string line; file >> line;)
+                        for (std::string line; std::getline(file, line);)  //file >> line;)
                         {
 
+                        // Easier splitting for Alex
+                        std::cout << "#" << std::endl;
                         std::cout << line << std::endl;
                         cv::Mat mat_img = cv::imread(line);
                         cv::Mat undistort_img;
 
-                        cv::undistort(mat_img, undistort_img, cam_mtx, dist_mtx, cam_mtx);
-                        std::vector<bbox_t> result_vec = detector.detect(undistort_img);
+                        //cv::undistort(mat_img, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                        std::vector<bbox_t> result_vec = detector.detect(mat_img);
 
                         if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
                         else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
                         
-                        show_console_result_distances( result_vec, obj_names );
+                        //show_console_result_distances( result_vec, obj_names );
+                        show_console_result_CLARA_test( result_vec, obj_names );
                 
                         if( valid_test ) 
                         {
-                          draw_boxes(undistort_img, result_vec, obj_names);
-                          cv::imwrite("res_" + line, undistort_img);
+                          frame_counter++;
+                          std::ostringstream stringStream;
+                          stringStream << std::setfill('0');
+                          stringStream << "valid_frames/jo6_";
+                          stringStream << std::setw(8) << std::to_string(frame_counter);
+                          stringStream << ".jpg";
+                          std::string filename = stringStream.str();
+                          draw_boxes(mat_img, result_vec, obj_names);
+                          cv::imwrite( filename , mat_img);
                         } 
                     }
+                    break;
                 }
             }
             else 
             {  // image file
+                std::cout << "Single image file" << std::endl;
+
                 cv::Mat undistort_img;
                 cv::Mat mat_img = cv::imread(filename);
 

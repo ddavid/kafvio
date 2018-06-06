@@ -449,12 +449,14 @@ class Tracker_optflow {};
 #ifdef OPENCV
 
 cv::Scalar obj_id_to_color(int obj_id) {
-	int const colors[6][3] = { { 1,0,1 },{ 0,0,1 },{ 0,1,1 },{ 0,1,0 },{ 1,1,0 },{ 1,0,0 } };
-	int const offset = obj_id * 123457 % 6;
-	int const color_scale = 150 + (obj_id * 123457) % 100;
-	cv::Scalar color(colors[offset][0], colors[offset][1], colors[offset][2]);
-	color *= color_scale;
-	return color;
+
+	cv::Scalar yellow(0, 200, 200);
+	cv::Scalar blue(200, 0, 0);
+	cv::Scalar red(0, 0, 200);
+
+	if( obj_id == 0 ) { return yellow; }
+	else if( obj_id == 1 ) { return blue; }
+	else return red;
 }
 
 class preview_boxes_t {
