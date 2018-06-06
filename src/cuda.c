@@ -67,7 +67,16 @@ static int streamInit[16] = { 0 };
 cudaStream_t get_cuda_stream() {
 	int i = cuda_get_device();
 	if (!streamInit[i]) {
-		cudaStreamCreate(&streamsArray[i]);
+		cudaError_t status = cudaStreamCreate(&streamsArray[i]);
+		//cudaError_t status = cudaStreamCreateWithFlags(&streamsArray[i], cudaStreamNonBlocking);
+		if (status != cudaSuccess) {
+			printf(" cudaStreamCreate error: %d \n", status);
+			const char *s = cudaGetErrorString(status);
+			char buffer[256];
+			printf("CUDA Error: %s\n", s);
+			status = cudaStreamCreateWithFlags(&streamsArray[i], cudaStreamDefault);
+			check_error(status);
+		}
 		streamInit[i] = 1;
 	}
 	return streamsArray[i];
@@ -177,4 +186,7 @@ void cuda_pull_array(float *x_gpu, float *x, size_t n)
 	cudaStreamSynchronize(get_cuda_stream());
 }
 
-#endif
+#else // GPU
+#include "cuda.h"
+void cuda_set_device(int n) {}
+#endif // GPU

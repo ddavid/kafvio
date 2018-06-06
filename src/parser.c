@@ -270,7 +270,12 @@ layer parse_yolo(list *options, size_params params)
 	int *mask = parse_yolo_mask(a, &num);
 	int max_boxes = option_find_int_quiet(options, "max", 30);
 	layer l = make_yolo_layer(params.batch, params.w, params.h, num, total, mask, classes, max_boxes);
-	assert(l.outputs == params.inputs);
+	if (l.outputs != params.inputs) {
+		printf("Error: l.outputs == params.inputs \n");
+		printf("filters= in the [convolutional]-layer doesn't correspond to classes= or mask= in [yolo]-layer \n");
+		exit(EXIT_FAILURE);
+	}
+	//assert(l.outputs == params.inputs);
 
 	//l.max_boxes = option_find_int_quiet(options, "max", 90);
 	l.jitter = option_find_float(options, "jitter", .2);
@@ -291,7 +296,7 @@ layer parse_yolo(list *options, size_params params)
 		for (i = 0; i < len; ++i) {
 			if (a[i] == ',') ++n;
 		}
-		for (i = 0; i < n; ++i) {
+		for (i = 0; i < n && i < total*2; ++i) {
 			float bias = atof(a);
 			l.biases[i] = bias;
 			a = strchr(a, ',') + 1;
@@ -308,7 +313,12 @@ layer parse_region(list *options, size_params params)
 	int max_boxes = option_find_int_quiet(options, "max", 30);
 
     layer l = make_region_layer(params.batch, params.w, params.h, num, classes, coords, max_boxes);
-    assert(l.outputs == params.inputs);
+	if (l.outputs != params.inputs) {
+		printf("Error: l.outputs == params.inputs \n");
+		printf("filters= in the [convolutional]-layer doesn't correspond to classes= or num= in [region]-layer \n");
+		exit(EXIT_FAILURE);
+	}
+    //assert(l.outputs == params.inputs);
 
     l.log = option_find_int_quiet(options, "log", 0);
     l.sqrt = option_find_int_quiet(options, "sqrt", 0);
@@ -344,7 +354,7 @@ layer parse_region(list *options, size_params params)
         for(i = 0; i < len; ++i){
             if (a[i] == ',') ++n;
         }
-        for(i = 0; i < n; ++i){
+        for(i = 0; i < n && i < num*2; ++i){
             float bias = atof(a);
             l.biases[i] = bias;
             a = strchr(a, ',')+1;
@@ -622,6 +632,7 @@ void parse_net_options(list *options, network *net)
     net->inputs = option_find_int_quiet(options, "inputs", net->h * net->w * net->c);
     net->max_crop = option_find_int_quiet(options, "max_crop",net->w*2);
     net->min_crop = option_find_int_quiet(options, "min_crop",net->w);
+	net->flip = option_find_int_quiet(options, "flip", 1);
 
 	net->small_object = option_find_int_quiet(options, "small_object", 0);
     net->angle = option_find_float_quiet(options, "angle", 0);
@@ -636,6 +647,9 @@ void parse_net_options(list *options, network *net)
     char *policy_s = option_find_str(options, "policy", "constant");
     net->policy = get_policy(policy_s);
     net->burn_in = option_find_int_quiet(options, "burn_in", 0);
+#ifdef CUDNN_HALF
+	net->burn_in = 0;
+#endif
     if(net->policy == STEP){
         net->step = option_find_int(options, "step", 1);
         net->scale = option_find_float(options, "scale", 1);
@@ -708,6 +722,7 @@ network parse_network_cfg_custom(char *filename, int batch)
     params.time_steps = net.time_steps;
     params.net = net;
 
+	float bflops = 0;
     size_t workspace_size = 0;
     n = n->next;
     int count = 0;
@@ -715,7 +730,7 @@ network parse_network_cfg_custom(char *filename, int batch)
     fprintf(stderr, "layer     filters    size              input                output\n");
     while(n){
         params.index = count;
-        fprintf(stderr, "%5d ", count);
+        fprintf(stderr, "%4d ", count);
         s = (section *)n->val;
         options = s->options;
         layer l = {0};
@@ -792,10 +807,12 @@ network parse_network_cfg_custom(char *filename, int batch)
             params.c = l.out_c;
             params.inputs = l.outputs;
         }
+		if (l.bflops > 0) bflops += l.bflops;
     }   
     free_list(sections);
     net.outputs = get_network_output_size(net);
     net.output = get_network_output(net);
+	printf("Total BFLOPS %5.3f \n", bflops);
     if(workspace_size){
         //printf("%ld\n", workspace_size);
 #ifdef GPU

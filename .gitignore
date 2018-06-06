@@ -16,15 +16,16 @@ submission/
 cfg/
 darknet
 .fuse*
-basler-tamron_augmented_only-red/
-cone-sim_augmented/
-logs/
-old_validation/
+validation/
 partial_weights/
-training_first-basler-outdoor/
+cone-sim_augmented/
+augmented_training/
+old_validation/
 training_v2/
 valid_kit/
-validation/
+training_first-basler-outdoor/
+basler-tamron_augmented_only-red/
+logs/
 
 # OS Generated #
 .DS_Store*
@@ -34,18 +35,21 @@ Thumbs.db
 *.swp
 
 # Makefile fsd-train Jetson #
-Makefile
+# Makefile
 
 # CMake #
 cmake-build-debug/
 build/
 *.weights
 *.mp4
-augmented_training/
 *.avi
+*.csv
+*.log
+
 chart*
 jesewang-straight/
 lucas_demo/
 predictions/
 jesewang-oval/
 evaluations/
+

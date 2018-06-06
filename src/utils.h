@@ -11,10 +11,25 @@
 #define SECRET_NUM -1234
 #define TWO_PI 6.2831853071795864769252866
 
+#ifdef YOLODLL_EXPORTS
+#if defined(_MSC_VER)
+#define YOLODLL_API __declspec(dllexport) 
+#else
+#define YOLODLL_API __attribute__((visibility("default")))
+#endif
+#else
+#if defined(_MSC_VER)
+#define YOLODLL_API
+#else
+#define YOLODLL_API
+#endif
+#endif
+
+double what_time_is_it_now();
 int *read_map(char *filename);
 void shuffle(void *arr, size_t n, size_t size);
 void sorta_shuffle(void *arr, size_t n, size_t size, size_t sections);
-void free_ptrs(void **ptrs, int n);
+YOLODLL_API void free_ptrs(void **ptrs, int n);
 char *basecfg(char *cfgfile);
 int alphanum_to_int(char c);
 char int_to_alphanum(int i);
@@ -25,6 +40,7 @@ void write_all(int fd, char *buffer, size_t bytes);
 int read_all_fail(int fd, char *buffer, size_t bytes);
 int write_all_fail(int fd, char *buffer, size_t bytes);
 void find_replace(char *str, char *orig, char *rep, char *output);
+void replace_image_to_label(char *input_path, char *output_path);
 void error(const char *s);
 void malloc_error();
 void file_error(char *s);
