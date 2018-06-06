@@ -44,3 +44,8 @@ build/
 augmented_training/
 *.avi
 chart*
+jesewang-straight/
+lucas_demo/
+predictions/
+jesewang-oval/
+evaluations/
