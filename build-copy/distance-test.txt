@@ -1,0 +1,8 @@
+big-red_no-teppich.jpg
+big-red_second-cone_teppich.jpg
+blue_no-teppich.jpg
+blue_third-cone_teppich.jpg
+red_fourth-cone_teppich.jpg
+red_no-teppich.jpg
+yellow_first-cone_teppich.jpg
+yellow_no-teppich.jpg

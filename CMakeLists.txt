@@ -99,6 +99,7 @@ endif()
 find_package(OpenCV REQUIRED)
 find_package(Threads)
 find_package(Boost COMPONENTS program_options REQUIRED)
+find_package(connector 1.0 REQUIRED)
 
 include_directories(
     ${OpenCV_INCLUDE_DIRS}

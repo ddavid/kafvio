@@ -24,7 +24,7 @@
 #include "yolo_v2_class.hpp"        // imported functions from DLL
 //#include "object.hpp"             // Old Dirty, dirty FSD Object
 #include "object.h"
-#include "client.h"                 // Jussie & Alex: UDP/TCP Connector 
+#include <connector-1.0/client.h>   // Jussie & Alex: UDP/TCP Connector 
 
 #include <pylon/PylonIncludes.h>    // Pylon SDK
 
@@ -248,6 +248,15 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 temp.distance = straight_distance;
                 temp.angle    = angle;
                 temp.type     = box.obj_id;
+                temp.x_car = 0;
+                temp.y_car = 0;
+                temp.angle_yaw = 0;
+                temp.vx = 0;
+                temp.vy = 0;
+                temp.ax = 0;
+                temp.ay = 0;
+                temp.yaw_rate = 0;
+                temp.time_s = 0;
 
                 cones.element[index] = temp;
                 index++;
@@ -276,7 +285,15 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 temp.distance = straight_distance;
                 temp.angle    = angle;
                 temp.type     = box.obj_id;
-
+                temp.x_car = 0;
+                temp.y_car = 0;
+                temp.angle_yaw = 0;
+                temp.vx = 0;
+                temp.vy = 0;
+                temp.ax = 0;
+                temp.ay = 0;
+                temp.yaw_rate = 0;
+                temp.time_s = 0;
                 cones.element[index] = temp;
                 index++;
     
