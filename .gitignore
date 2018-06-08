@@ -16,7 +16,6 @@ submission/
 cfg/
 darknet
 .fuse*
-<<<<<<< HEAD
 validation/
 partial_weights/
 cone-sim_augmented/
@@ -27,17 +26,6 @@ valid_kit/
 training_first-basler-outdoor/
 basler-tamron_augmented_only-red/
 logs/
-=======
-basler-tamron_augmented_only-red/
-cone-sim_augmented/
-logs/
-old_validation/
-partial_weights/
-training_first-basler-outdoor/
-training_v2/
-valid_kit/
-validation/
->>>>>>> f286568ac0c0ab759f130d3f879b78ef3f8b5994
 
 # OS Generated #
 .DS_Store*
@@ -55,9 +43,13 @@ build/
 *.weights
 *.mp4
 *.avi
-<<<<<<< HEAD
 *.csv
 *.log
-=======
+
 chart*
->>>>>>> f286568ac0c0ab759f130d3f879b78ef3f8b5994
+jesewang-straight/
+lucas_demo/
+predictions/
+jesewang-oval/
+evaluations/
+
