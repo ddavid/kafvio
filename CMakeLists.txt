@@ -2,32 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 project(wrapper)
 add_compile_options(-std=c++14 -Werror=return-type -Wall)
 
-set(GLFW_LIB_DIR /usr/share/visionworks/sources/3rdparty/glfw3/libs)
-
-add_library(darknet SHARED IMPORTED) # or STATIC instead of SHARED
-set_target_properties(darknet PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/darknet.so"
-)
-
-add_library(ovx STATIC IMPORTED)
-set_target_properties(ovx PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/libs/libovx.a"
-)
-
-add_library(nvx STATIC IMPORTED)
-set_target_properties(nvx PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/libs/libnvx.a"
-)
-add_library(xx86 SHARED IMPORTED)
-set_target_properties(xx86 PROPERTIES 
-  IMPORTED_LOCATION "/usr/lib/x86_64-linux-gnu/libXxf86vm.so"
-)
-
-#[[add_library(glfw3 STATIC IMPORTED)
-set_target_properties(glfw3 PROPERTIES 
-  IMPORTED_LOCATION "${GLFW_LIB_DIR}/libglfw3.a"
-)]]
-
 ## Adding DEBUG_MODE for Connector::util.h
 OPTION(DEBUG_MODE "Enables the DEBUG messages and -O0 flags" 1) 
 
@@ -195,7 +169,7 @@ target_link_libraries(tracker
     ${GST_LIBRARIES}
     visionworks_tracking.so
     glfw
-    xx86
+    #xx86
     ${X11_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${FREETYPE_LIBRARIES}

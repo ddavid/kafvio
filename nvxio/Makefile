@@ -200,3 +200,6 @@ clean:
 	rm -f $(OBJ_CPP_FILES) $(OBJ_C_FILES)
 	rm -f $(OBJ_NVX_CPP_FILES) $(OBJ_NVX_C_FILES)
 	rm -fr $(OUTPUT_DIR) $(OBJ_DIR)
+
+install:
+	cp $(OUTPUT_DIR)/libovx.a $(OUTPUT_DIR)/libnvx.a /usr/lib

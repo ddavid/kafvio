@@ -15,6 +15,7 @@
 #define OBJECT_SRC_OBJECT_H_
 #define MAX_LISTSIZE 30
 
+#include <stdint.h>
 
 /** 
  *

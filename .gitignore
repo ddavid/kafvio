@@ -36,6 +36,7 @@ Thumbs.db
 
 # Makefile fsd-train Jetson #
 # Makefile
+libs/
 
 # CMake #
 cmake-build-debug/
