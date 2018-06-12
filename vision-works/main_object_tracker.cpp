@@ -440,9 +440,9 @@ int main(int argc, char* argv[])
     {
         nvxio::Application &app = nvxio::Application::get();
 
-        std::string configFile = app.findSampleFilePath("tracking/tracking_config.ini");
+        std::string configFile = "/home/fsd-train/Documents/github-repos/fsd-darknet/build/data/tracking/tracking_config.ini";
         std::cout << "Got here" << std::endl;
-        std::string defaultSourceUri = app.findSampleFilePath("tracking/cars.mp4");
+        std::string defaultSourceUri = "/home/fsd-train/Documents/github-repos/fsd-darknet/build/data/tracking/cars.mp4";
         std::string sourceUri = defaultSourceUri;
 
         app.setDescription("This demo demonstrates Object Tracker algorithm");
