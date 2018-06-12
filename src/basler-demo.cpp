@@ -24,7 +24,7 @@
 #include "yolo_v2_class.hpp"        // imported functions from DLL
 //#include "object.hpp"             // Old Dirty, dirty FSD Object
 #include "object.h"
-#include "client.h"                 // Jussie & Alex: UDP/TCP Connector 
+#include <connector-1.0/client.h>   // Jussie & Alex: UDP/TCP Connector 
 
 #include <pylon/PylonIncludes.h>    // Pylon SDK
 
@@ -43,7 +43,7 @@
 #pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
 #endif  // TRACK_OPTFLOW
 #else
-#define OPENCV_VERSION CVAUX_STR(CV_VERSION_EPOCH)""CVAUX_STR(CV_VERSION_MAJOR)""CVAUX_STR(CV_VERSION_MINOR)
+#define OPENCV_VERSION CVAUX_STR(CV_VERSION_EPOCH)"" CVAUX_STR(CV_VERSION_MAJOR)"" CVAUX_STR(CV_VERSION_MINOR)
 #pragma comment(lib, "opencv_core" OPENCV_VERSION ".lib")
 #pragma comment(lib, "opencv_imgproc" OPENCV_VERSION ".lib")
 #pragma comment(lib, "opencv_highgui" OPENCV_VERSION ".lib")
@@ -55,6 +55,8 @@ enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1 };
 
 const int IMAGE_HEIGHT = 1024;
 const int IMAGE_WIDTH  = 1280;
+
+std::chrono::steady_clock::time_point steady_clara_start;
 
 class track_kalman {
 public:
@@ -223,6 +225,9 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
 
     int index = 0;
 
+    std::chrono::steady_clock::time_point steady_clara_measure = std::chrono::steady_clock::now();
+    std::chrono::duration<double> clara_delta = steady_clara_measure - steady_clara_start;
+
     switch( strat )
     {
         case CONE_HEIGHT:
@@ -248,6 +253,15 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 temp.distance = straight_distance;
                 temp.angle    = angle;
                 temp.type     = box.obj_id;
+                temp.x_car = 0;
+                temp.y_car = 0;
+                temp.angle_yaw = 0;
+                temp.vx = 0;
+                temp.vy = 0;
+                temp.ax = 0;
+                temp.ay = 0;
+                temp.yaw_rate = 0;
+                temp.time_s = clara_delta.count();
 
                 cones.element[index] = temp;
                 index++;
@@ -276,7 +290,15 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 temp.distance = straight_distance;
                 temp.angle    = angle;
                 temp.type     = box.obj_id;
-
+                temp.x_car = 0;
+                temp.y_car = 0;
+                temp.angle_yaw = 0;
+                temp.vx = 0;
+                temp.vy = 0;
+                temp.ax = 0;
+                temp.ay = 0;
+                temp.yaw_rate = 0;
+                temp.time_s = clara_delta.count();
                 cones.element[index] = temp;
                 index++;
     
@@ -423,6 +445,7 @@ int main(int argc, char *argv[])
     std::string       cfg_file;
     std::string       weights_file;
     std::string       filename;
+    std::string       pfs_file_name;
     std::string       ip;
     int               pylon;
     int               record_stream;
@@ -444,19 +467,20 @@ int main(int argc, char *argv[])
         ("help", "produce help message")
         ("classes", po::value<std::string>(&names_file)->default_value("../data/cones.names"), ".txt or .list file with one class name per line")
         ("config", po::value<std::string>(&cfg_file)->default_value("../cfg/bigger-steps_rollout_yolov3-tiny.cfg"),  "Darknet .cfg file")
-        ("weights", po::value<std::string>(&weights_file)->default_value("../rollout_transfer-weights_26000.weights"), "Darknet .weights file")
-        ("image_file", po::value<std::string>(&filename)->default_value("demo.jpg"), "Single Image file to run detection on")
+        ("weights", po::value<std::string>(&weights_file)->default_value("../bigger-steps_rollout_yolov3-tiny_25000.weights"), "Darknet .weights file")
+        ("image_file", po::value<std::string>(&filename), "Single Image file to run detection on")
         ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
         ("video_file", po::value<std::string>(&filename), "Single Video file to run detection on")
-        ("basler", po::value<int>(&pylon)->default_value(0), "Run demo with Basler Cam if set to 1")
+        ("basler", po::value<int>(&pylon)->default_value(1), "Run demo with Basler Cam if set to 1")
+        ("pfs_file", po::value<std::string>(&pfs_file_name)->default_value("../cam_config_120fps_auto-balance.pfs"), "Camera Config File to load.")
         ("record", po::value<int>(&record_stream)->default_value(0), "Record openCV stream to .avi file")
         ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
         ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
         ("undistort", po::value<int>(&undistort)->default_value(0), "Set undistortion flag")
         ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
-        ("port", po::value<int>(&port)->default_value(4242), "Set port to send objects to")
+        ("port", po::value<int>(&port)->default_value(4401), "Set port to send objects to")
         ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
-        ("udp_test", po::value<int>(&udp_test)->default_value(0), "If true, sends objects to specified ip:port")
+        ("udp_test", po::value<int>(&udp_test)->default_value(1), "If true, sends objects to specified ip:port")
         ("tcp_test", po::value<int>(&tcp_test)->default_value(0), "If true, sends objects to specified ip:port")
         ("distance-strategy", po::value<int>(&strategy_index)->default_value(0), "Sets the distance estimation strategy to be used.\n0 := Height\n1 := Width")
 
@@ -466,12 +490,13 @@ int main(int argc, char *argv[])
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
 
+    /*
     if (argc == 1 || vm.count("help"))
     {
         std::cout << desc << "\n";
         return 1;
     }
-
+    */
     // Set Distance Estimation
     if      ( strategy_index == 0 ) distance_strategy = Distance_Strategy::CONE_HEIGHT;
     else if ( strategy_index == 1 ) distance_strategy = Distance_Strategy::CONE_WIDTH;
@@ -534,15 +559,23 @@ int main(int argc, char *argv[])
         std::cout << "Trying to Attach Cam" << std::endl;
         camera.Attach(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
         std::cout << "Camera Attached.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+         
         camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);        
         std::cout << "Grabbing Started" << std::endl;                  
 
+        if ( pfs_file_name != "" )
+        {
+            Pylon::CFeaturePersistence::Load(pfs_file_name.c_str(), &camera.GetNodeMap(), true);
+            std::cout << "Camera Config loaded: " << pfs_file_name << std::endl;
         }
+    }
         catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
 
     }
 
     Detector detector(cfg_file, weights_file);
+
+    steady_clara_start = std::chrono::steady_clock::now();
 
     auto obj_names = objects_names_from_file(names_file);
         

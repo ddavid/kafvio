@@ -1,0 +1,3 @@
+/home/nvidia/Documents/github-repos/darknet-cvAlexey/build/CMakeFiles/rebuild_cache.dir
+/home/nvidia/Documents/github-repos/darknet-cvAlexey/build/CMakeFiles/edit_cache.dir
+/home/nvidia/Documents/github-repos/darknet-cvAlexey/build/CMakeFiles/main.dir

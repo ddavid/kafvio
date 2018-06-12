@@ -35,6 +35,7 @@ struct image_t {
 #include <vector>
 #include <deque>
 #include <algorithm>
+#include <boost/cstdint.hpp>
 
 #ifdef OPENCV
 #include <opencv2/opencv.hpp>			// C++

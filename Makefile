@@ -31,9 +31,10 @@ OS := $(shell uname)
 VPATH=./src/
 EXEC=darknet
 OBJDIR=./obj/
+LIBS_DIR := ./libs/
 
 ifeq ($(LIBSO), 1)
-LIBNAMESO=darknet.so
+LIBNAMESO=$(LIBS_DIR)/libdarknet.so
 #APPNAMESO=uselib
 endif
 
@@ -123,6 +124,8 @@ backup:
 	mkdir -p backup
 results:
 	mkdir -p results
+install:
+	cp $(LIBNAMESO) /usr/lib/
 
 .PHONY: clean
 

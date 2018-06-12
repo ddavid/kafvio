@@ -1,11 +1,6 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0)
 project(wrapper)
 add_compile_options(-std=c++14 -Werror=return-type -Wall)
-
-add_library(darknet SHARED IMPORTED) # or STATIC instead of SHARED
-set_target_properties(darknet PROPERTIES
-  IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/darknet.so"
-)
 
 ## Adding DEBUG_MODE for Connector::util.h
 OPTION(DEBUG_MODE "Enables the DEBUG messages and -O0 flags" 1) 
@@ -22,9 +17,9 @@ set(DEBUG 1)
 #set(GPU 1)
 set(PYLON 1)
 set(CUDNN 1)
+set(VISIONWORKS 1)
 
 #set (CMAKE_BUILD_TYPE  DEBUG)
-#set (OpenCV_DIR /opt/opencv320/share/OpenCV)
 
 # Setting CUDA this way breaks because of `error: template with C linkage`
 # 
@@ -34,14 +29,22 @@ set(CUDNN 1)
 #endif()
 
 if(CUDNN)
-        list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-        find_package(CUDNN REQUIRED)
-        add_definitions(-DCUDNN=1)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+    find_package(CUDNN REQUIRED)
+    add_definitions(-DCUDNN=1)
 endif()
 
 if(PYLON)
-        list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
-        find_package(Pylon REQUIRED)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
+    find_package(Pylon REQUIRED)
+endif()
+
+if(VISIONWORKS)
+    list(APPEND CMAKE_MODULE_PATH "/usr/share/visionworks-tracking/cmake")
+    find_package(VisionWorks REQUIRED)
+    #[[find_package(VisionWorks-Tracking REQUIRED)
+    message(STATUS "==> VISIONWORKS-TRACKING " ${VisionWorks-Tracking_INCLUDE_DIRS})
+    message(STATUS "==> VISIONWORKS-TRACKING " ${VisionWorks-Tracking_LIBRARIES})]]
 endif()
 
 find_package(BLAS)
@@ -99,6 +102,17 @@ endif()
 find_package(OpenCV REQUIRED)
 find_package(Threads)
 find_package(Boost COMPONENTS program_options REQUIRED)
+find_package(connector 1.0 REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(X11 REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(Freetype REQUIRED)
+
+find_package(PkgConfig)
+pkg_search_module(Eigen3 REQUIRED eigen3)
+pkg_check_modules(GST REQUIRED gstreamer-base-1.0
+                               gstreamer-pbutils-1.0
+                               gstreamer-app-1.0)
 
 include_directories(
     ${OpenCV_INCLUDE_DIRS}
@@ -106,28 +120,30 @@ include_directories(
     ${CUDNN_INCLUDE_DIRS}
     ${PYLON_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIR}
+    ${OpenGL_INLCUDE_DIR}
+    eigen3
     src
+    nvxio/include
+    nvx/tracking
+    nvx
 )
 
 link_directories(
+    /usr/lib/x86_64-linux-gnu
     /usr/local/cuda/lib
     /usr/local/cuda/lib64
-    lib
+    libs
     src
 )
 
 add_executable(main
     src/basler-demo.cpp
-    #src/yolo_console_dll.cpp
-    #main.cpp
-    #src/yolo_v2_class.cpp
     src/yolo_v2_class.hpp
-    src/object.h
-    # Old Dirty, dirty FSD Object
-    #src/object.hpp
-    #src/object.cpp
-    
+    src/object.h  
 )
+
+add_executable(tracker
+    vision-works/main_object_tracker.cpp)
 
 target_link_libraries(main 
     ${OpenCV_LIBS}
@@ -135,6 +151,28 @@ target_link_libraries(main
     ${CUDNN_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}
+    darknet
+    cuda 
+    cudart 
+    cublas 
+    curand
+)
+
+target_link_libraries(tracker
+    ${OpenCV_LIBS}
+    ${PYLON_LIBRARIES} 
+    ${CUDNN_LIBRARIES}
+    ${Boost_LIBRARIES}
+    ${VisionWorks_LIBRARIES} 
+    ovx
+    nvx
+    ${GST_LIBRARIES}
+    visionworks_tracking.so
+    glfw
+    ${X11_LIBRARIES}
+    ${OPENGL_LIBRARIES}
+    ${FREETYPE_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
     darknet
     cuda 
     cudart 

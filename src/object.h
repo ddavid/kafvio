@@ -15,24 +15,35 @@
 #define OBJECT_SRC_OBJECT_H_
 #define MAX_LISTSIZE 30
 
-#include <time.h>
-#include <stdio.h>
 #include <stdint.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-
 
 /** 
  *
  * Member:
+ *    * `double`: x_car X   coordinate of the car in [m]
+ *    * `double`: y_car     coordinate of the car in [m]
+ *    * `double`: angle_yaw Azimute angle of the car in [rad]
+ *    * `double`: vx velocity of the car in x-direction in [m/s]
+ *    * `double`: vy velocity of the car in y-direction in [m/s]
+ *    * `double`: ax acceleration of the car in x-direction in [m/s^2]
+ *    * `double`: ay acceleration of the car in y-direction in [m/s^2]
+ *    * `double`: yaw_rate of the car in [rad/s]
  *    * `double`: distance to from the camera to the cone in [m]
  *    * `double`: angle to the cone in driving direction in [rad]
- *    * `int`: type of object  0 - yellow, 1 - blue, 2 - little red, 3 - big red
- *    */
+ *    * `double`: elapsed time from the start of the simulation in [s]
+ */
 typedef struct { 
+    double x_car;
+    double y_car;
+    double angle_yaw;
+    double vx;
+    double vy;
+    double ax;
+    double ay;
+    double yaw_rate;
     double distance; 
     double angle; 
+    double time_s;
     int type;
 } object_t;
 
@@ -45,10 +56,9 @@ typedef struct {
  *    * `object_t`: element is an array of `object_t` elements
  */
 typedef struct {
-	uint32_t     size;
-	object_t  element[MAX_LISTSIZE];
+    uint32_t     size;
+    object_t  element[MAX_LISTSIZE];
 } object_list_t;
-
 
 
 #endif  // OBJECT_SRC_OBJECT_H_
