@@ -778,15 +778,12 @@ int main(int argc, char *argv[])
                         });
                         }
                     }
-
-    #ifndef TRACK_OPTFLOW
                     // wait detection result for video-file only (not for net-cam)
                     if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") 
                     {
                         std::unique_lock<std::mutex> lock(mtx);
                         while (!consumed) cv_detected.wait(lock);
                     }
-    #endif
                 }
                 exit_flag = true;
                 if (t_cap.joinable()) t_cap.join();
@@ -1121,15 +1118,12 @@ int main(int argc, char *argv[])
                             });
                         }
                     }
-
-#ifndef TRACK_OPTFLOW
                     // wait detection result for video-file only (not for net-cam)
                     if ( record_stream ) 
                     {
                         std::unique_lock<std::mutex> lock(mtx);
                         while (!consumed) cv_detected.wait(lock);
                     }
-#endif
                 }
                 if (t_cap.joinable()) t_cap.join();
                 if (t_detect.joinable()) t_detect.join();
