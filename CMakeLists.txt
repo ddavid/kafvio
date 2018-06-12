@@ -169,7 +169,6 @@ target_link_libraries(tracker
     ${GST_LIBRARIES}
     visionworks_tracking.so
     glfw
-    #xx86
     ${X11_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${FREETYPE_LIBRARIES}
