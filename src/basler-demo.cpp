@@ -324,8 +324,8 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
         cv::Scalar color = obj_id_to_color(i.obj_id);
         cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
         if (obj_names.size() > i.obj_id) {
-            std::string obj_caption = std::to_string(height_objects.element[index].distance);
-            if (i.track_id > 0) std::to_string(height_objects.element[index].distance) += " - " + std::to_string(i.track_id);
+            std::string obj_caption = std::to_string(height_objects.element[index].distance) + " , angle: " + std::to_string(height_objects.element[index].distance);
+            if (i.track_id > 0) std::to_string(height_objects.element[index].distance) += " - " + std::to_string(i.track_id); 
             cv::Size const text_size = getTextSize(obj_caption, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, 0);
             int const max_width = (text_size.width > i.w + 2) ? text_size.width : (i.w + 2);
             cv::rectangle(mat_img, cv::Point2f(std::max((int)i.x - 1, 0), std::max((int)i.y - 30, 0)), 
@@ -370,8 +370,8 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
                   << ", w = " << i.w << ", h = " << i.h
               << std::setprecision(3) << ", prob = " << i.prob 
                       << ", distance_width = " << width_objects.element[count].distance << std::setprecision(6) 
-                      << ", distance_height = " << height_objects.element[count].distance << std::endl;
-                
+                      << ", distance_height = " << height_objects.element[count].distance
+                      << ", angle = " << height_objects.element[count].angle << '\n';
             count++;
     }
         
