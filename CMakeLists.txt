@@ -136,7 +136,7 @@ link_directories(
     src
 )
 
-add_executable(main
+add_executable(darknet-run
     src/basler-demo.cpp
     src/yolo_v2_class.hpp
     src/object.h  
@@ -145,7 +145,7 @@ add_executable(main
 add_executable(tracker
     vision-works/main_object_tracker.cpp)
 
-target_link_libraries(main 
+target_link_libraries(darknet-run 
     ${OpenCV_LIBS}
     ${PYLON_LIBRARIES} 
     ${CUDNN_LIBRARIES}
