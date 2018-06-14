@@ -512,31 +512,14 @@ int main(int argc, char *argv[])
     cv::Mat rvec     = (cv::Mat_<double>(3,1) << -0.05461275,  1.12613537,  0.04233885);
     cv::Mat tvec     = (cv::Mat_<double>(3,1) << -1.65275017, -2.34888592,  13.89459771);
 
-    cv::Mat map1, map2;
+    cv::Mat map1, map2, identity_mtx;
+    cv::setIdentity(identity_mtx);
 
     cv::Size imageSize( IMAGE_HEIGHT, IMAGE_WIDTH );
-    cv::Mat new_cam_mtx = cv::getOptimalNewCameraMatrix(cam_mtx, dist_mtx, imageSize, 1, imageSize, 0);
-    cv::initUndistortRectifyMap(cam_mtx, dist_mtx, cv::Mat(), new_cam_mtx, imageSize, CV_16SC2, map1, map2);
-
-    /*
-    cv::Mat xyz(IMAGE_HEIGHT, IMAGE_WIDTH, CV_32FC3);
-    float * pxyz = (float *)xyz.data;
-    for (int y = 0; y < IMAGE_HEIGHT; y++)
-        for (int x = 0; x < IMAGE_WIDTH; x++)
-        {
-            *pxyz++ = x;
-            *pxyz++ = y;
-            *pxyz++ = 0;
-        }
-    int flat_dims = IMAGE_HEIGHT * IMAGE_WIDTH;
-    xyz = xyz.reshape(0, flat_dims);
-    cv::Mat mapToSrc(flat_dims, 1, CV_32FC2);
-    cv::projectPoints(xyz, rvec, tvec, cam_mtx, dist_mtx, mapToSrc);
-    cv::Mat maps[2];
-    mapToSrc = mapToSrc.reshape(0, IMAGE_HEIGHT);
-    cv::split(mapToSrc, maps);
-    */  
-        
+    // Get New Camera Matrix
+    // (Old camera matrix, distortion coefficients, img_size, what to do with empty pixels, new_img_size, valid_pixels_roi, keep_center_principal_point)
+    cv::Mat new_cam_mtx = cv::getOptimalNewCameraMatrix(cam_mtx, dist_mtx, imageSize, 1, imageSize, 0, true);
+    cv::initUndistortRectifyMap(cam_mtx, dist_mtx, identity_mtx, cam_mtx, imageSize, CV_16SC2, map1, map2);
 
     std::cout << "Trying to initialize Pylon" << std::endl;
     // Initialize Pylon
@@ -846,7 +829,15 @@ int main(int argc, char *argv[])
                         cv::Mat undistort_img;
 
                         //cv::undistort(mat_img, undistort_img, cam_mtx, dist_mtx, cam_mtx);
-                        std::vector<bbox_t> result_vec = detector.detect(mat_img);
+                        std::vector<bbox_t> result_vec;                        
+
+                        if(undistort)
+                        {
+                          cv::Mat tmp(mat_img);
+                          cv::remap(tmp, undistort_img, map1, map2, cv::INTER_LINEAR);
+                          result_vec = detector.detect(undistort_img); 
+                        }
+                        else result_vec = detector.detect(mat_img);
 
                         if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
                         else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
@@ -947,7 +938,8 @@ int main(int argc, char *argv[])
 
                         if( undistort )
                         {
-                          cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                          //cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                          cv::remap(temp, undistort_img, map1, map2, cv::INTER_LINEAR);
                           cur_frame = undistort_img;
                         }
                         else 
@@ -998,7 +990,8 @@ int main(int argc, char *argv[])
                                 cv::Mat undistort_img;
                                 if( undistort )
                                 {
-                                  cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                                  //cv::undistort(temp, undistort_img, cam_mtx, dist_mtx, cam_mtx);
+                                  cv::remap(temp, undistort_img, map1, map2, cv::INTER_LINEAR);
                                   cap_frame = undistort_img;
                                 } 
                                 else 
