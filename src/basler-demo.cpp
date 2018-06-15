@@ -16,7 +16,7 @@
 #endif
 
 // To use tracking - uncomment the following line. Tracking is supported only by OpenCV 3.x
-//#define TRACK_OPTFLOW
+#define TRACK_OPTFLOW
 
 #define OPENCV
 #define GPU
@@ -324,7 +324,7 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
         cv::Scalar color = obj_id_to_color(i.obj_id);
         cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
         if (obj_names.size() > i.obj_id) {
-            std::string obj_caption = std::to_string(height_objects.element[index].distance) + " , angle: " + std::to_string(height_objects.element[index].distance);
+            std::string obj_caption = std::to_string(height_objects.element[index].distance) + " , angle: " + std::to_string(height_objects.element[index].angle);
             if (i.track_id > 0) std::to_string(height_objects.element[index].distance) += " - " + std::to_string(i.track_id); 
             cv::Size const text_size = getTextSize(obj_caption, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, 0);
             int const max_width = (text_size.width > i.w + 2) ? text_size.width : (i.w + 2);
@@ -456,6 +456,7 @@ int main(int argc, char *argv[])
     int               tcp_test;
     float             thresh;
     int               undistort;
+    int               tracking;
     int               strategy_index;
 
     long              frame_counter = 0;
@@ -465,9 +466,9 @@ int main(int argc, char *argv[])
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
-        ("classes", po::value<std::string>(&names_file)->default_value("../data/cones.names"), ".txt or .list file with one class name per line")
-        ("config", po::value<std::string>(&cfg_file)->default_value("../cfg/bigger-steps_rollout_yolov3-tiny.cfg"),  "Darknet .cfg file")
-        ("weights", po::value<std::string>(&weights_file)->default_value("../bigger-steps_rollout_yolov3-tiny_25000.weights"), "Darknet .weights file")
+        ("classes", po::value<std::string>(&names_file)->default_value("/home/nvidia/Documents/github-repos/fsd-darknet/data/cones.names"), ".txt or .list file with one class name per line")
+        ("config", po::value<std::string>(&cfg_file)->default_value("/home/nvidia/Documents/github-repos/fsd-darknet/cfg/yolov3-hires.cfg"),  "Darknet .cfg file")
+        ("weights", po::value<std::string>(&weights_file)->default_value("~/ssd/usb_weights/yolov3-hires_20000.weights"), "Darknet .weights file")
         ("image_file", po::value<std::string>(&filename), "Single Image file to run detection on")
         ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
         ("video_file", po::value<std::string>(&filename), "Single Video file to run detection on")
@@ -477,6 +478,7 @@ int main(int argc, char *argv[])
         ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
         ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
         ("undistort", po::value<int>(&undistort)->default_value(0), "Set undistortion flag")
+        ("tracking", po::value<int>(&tracking)->default_value(1), "Set tracking flag")
         ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
         ("port", po::value<int>(&port)->default_value(4401), "Set port to send objects to")
         ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
@@ -539,19 +541,19 @@ int main(int argc, char *argv[])
     {
         try
         {
-        std::cout << "Trying to Attach Cam" << std::endl;
-        camera.Attach(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
-        std::cout << "Camera Attached.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
+          std::cout << "Trying to Attach Cam" << std::endl;
+          camera.Attach(Pylon::CTlFactory::GetInstance().CreateFirstDevice());
+          std::cout << "Camera Attached.\n" << "Using Device: " << camera.GetDeviceInfo().GetModelName() << std::endl;
          
-        camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);        
-        std::cout << "Grabbing Started" << std::endl;                  
+          camera.StartGrabbing(Pylon::EGrabStrategy::GrabStrategy_LatestImageOnly, Pylon::EGrabLoop::GrabLoop_ProvidedByUser);        
+          std::cout << "Grabbing Started" << std::endl;                  
 
-        if ( pfs_file_name != "" )
-        {
+          if ( pfs_file_name != "" )
+          {
             Pylon::CFeaturePersistence::Load(pfs_file_name.c_str(), &camera.GetNodeMap(), true);
             std::cout << "Camera Config loaded: " << pfs_file_name << std::endl;
+          }
         }
-    }
         catch ( Pylon::GenericException &e) { std::cerr << "An exception occurred." << std::endl << e.GetDescription() << std::endl; return 1; }
 
     }
@@ -587,7 +589,7 @@ int main(int argc, char *argv[])
         try {
 #ifdef OPENCV
             extrapolate_coords_t extrapolate_coords;
-            bool extrapolate_flag = true;
+            bool extrapolate_flag = false;
             float cur_time_extrapolate = 0, old_time_extrapolate = 0;
             preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
             bool show_small_boxes = false;
@@ -607,10 +609,11 @@ int main(int argc, char *argv[])
                 bool exit_flag = false;
                 consumed = true;
                 videowrite_ready = true;
-                std::atomic<int> fps_det_counter, fps_cap_counter;
-                fps_det_counter = 0;
-                fps_cap_counter = 0;
-                int current_det_fps = 0, current_cap_fps = 0;
+                std::atomic<int> fps_det_counter, fps_cap_counter, tracking_counter;
+                fps_det_counter  = 0;
+                fps_cap_counter  = 0;
+                tracking_counter = 0;
+                int current_det_fps = 0, current_cap_fps = 0, current_tracking_fps = 0;
                 std::thread t_detect, t_cap, t_videowrite;
                 std::mutex mtx;
                 std::condition_variable cv_detected, cv_pre_tracked;
@@ -659,11 +662,12 @@ int main(int argc, char *argv[])
                         auto old_result_vec = detector.tracking_id(result_vec);
                         auto detected_result_vec = thread_result_vec;
                         result_vec = detected_result_vec;
-    #ifdef TRACK_OPTFLOW
-                        // track optical flow
-                        if (track_optflow_queue.size() > 0) 
+    
+                        if(tracking)
                         {
-                            //std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
+                          // track optical flow
+                          if (track_optflow_queue.size() > 0) 
+                          {
                             cv::Mat first_frame = track_optflow_queue.front();
                             tracker_flow.update_tracking_flow(track_optflow_queue.front(), result_vec);
 
@@ -682,11 +686,13 @@ int main(int argc, char *argv[])
                             extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
                             old_time_extrapolate = cur_time_extrapolate;
                             extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
+                          }
                         }
-    #else
-                        result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
-                        extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
-    #endif
+                        else
+                        {
+                          result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
+                          extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
+                        }
                         // add old tracked objects
                         for (auto &i : old_result_vec) 
                         {
@@ -703,10 +709,11 @@ int main(int argc, char *argv[])
                                 it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
                             }
                         }
-    #ifdef TRACK_OPTFLOW
-                        tracker_flow.update_cur_bbox_vec(result_vec);
-                        result_vec = tracker_flow.tracking_flow(cur_frame, true);   // track optical flow
-    #endif
+                        if(tracking)
+                        {
+                          tracker_flow.update_cur_bbox_vec(result_vec);
+                          result_vec = tracker_flow.tracking_flow(cur_frame, true);   // track optical flow
+                        }
                         consumed = false;
                         cv_pre_tracked.notify_all();
                     }
@@ -740,21 +747,27 @@ int main(int argc, char *argv[])
                         steady_end = std::chrono::steady_clock::now();
                         if (std::chrono::duration<double>(steady_end - steady_start).count() >= 1) 
                         {
-                            current_det_fps = fps_det_counter;
-                            current_cap_fps = fps_cap_counter;
+                            current_det_fps      = fps_det_counter;
+                            current_cap_fps      = fps_cap_counter;
+                            current_tracking_fps = tracking_counter;
                             steady_start = steady_end;
-                            fps_det_counter = 0;
-                            fps_cap_counter = 0;
+                            fps_det_counter  = 0;
+                            fps_cap_counter  = 0;
+                            tracking_counter = 0;
                         }
 
                         large_preview.set(cur_frame, result_vec);
-    #ifdef TRACK_OPTFLOW
-                        ++passed_flow_frames;
-                        track_optflow_queue.push(cur_frame.clone());
-                        result_vec = tracker_flow.tracking_flow(cur_frame); // track optical flow
-                        extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
-                        small_preview.draw(cur_frame, show_small_boxes);
-    #endif                      
+
+                        if(tracking)
+                        {
+                           ++passed_flow_frames;
+                          track_optflow_queue.push(cur_frame.clone());
+                          result_vec = tracker_flow.tracking_flow(cur_frame); // track optical flow
+                          ++tracking_counter;
+                          extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
+                          small_preview.draw(cur_frame, show_small_boxes);
+                        }
+                 
                         auto result_vec_draw = result_vec;
                         if (extrapolate_flag) {
                             result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
@@ -764,9 +777,10 @@ int main(int argc, char *argv[])
                         if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
                         else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
 
-                        std::cout << "Detection FPS: " << current_det_fps << std::endl;
-                        std::cout << "Capture   FPS: " << current_cap_fps << std::endl;
-                        show_console_result(result_vec, obj_names);
+                        std::cout << "Detection FPS: " << current_det_fps << "\n";
+                        std::cout << "Capture   FPS: " << current_cap_fps << "\n";
+                        std::cout << "Tracking FPS: " << current_tracking_fps << "\n";
+                        //show_console_result(result_vec, obj_names);
                         // Make Results always be on top of Console
                         std::cout << "\033[2J";
                         std::cout << "\033[1;1H";
@@ -778,31 +792,36 @@ int main(int argc, char *argv[])
                             large_preview.draw(cur_frame);
 
                             cv::imshow("window name", cur_frame);
-                            int key = cv::waitKey(3);   // 3 or 16ms
-                        if (key == 'f') show_small_boxes = !show_small_boxes;
-                        if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
-                        if (key == 'e') extrapolate_flag = !extrapolate_flag;
-                        if (key == 27) { exit_flag = true; break; }
+                            int key = cv::waitKey(1);   // 3 or 16ms
+                            
+                            if (key == 'f') show_small_boxes = !show_small_boxes;
+                            if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
+                            if (key == 't') tracking = !tracking;
+                            if (key == 'e') extrapolate_flag = !extrapolate_flag;
+                            if (key == 27) { exit_flag = true; break; }
                         }
                             
-                        if (output_video.isOpened() && videowrite_ready) {
-                        if (t_videowrite.joinable()) t_videowrite.join();
-                        write_frame = cur_frame.clone();
-                        videowrite_ready = false;
-                        t_videowrite = std::thread([&]() { 
-                        output_video << write_frame; videowrite_ready = true;
-                        });
+                        if (output_video.isOpened() && videowrite_ready) 
+                        {
+                          if (t_videowrite.joinable()) t_videowrite.join();
+                          write_frame = cur_frame.clone();
+                          videowrite_ready = false;
+                          t_videowrite = std::thread([&]() 
+                          { 
+                            output_video << write_frame; videowrite_ready = true;
+                          });
                         }
-                    }
+                     }
 
-    #ifndef TRACK_OPTFLOW
-                    // wait detection result for video-file only (not for net-cam)
-                    if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") 
+                    if(tracking)
                     {
+                      // wait detection result for video-file only (not for net-cam)
+                      if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") 
+                      {
                         std::unique_lock<std::mutex> lock(mtx);
                         while (!consumed) cv_detected.wait(lock);
+                      }
                     }
-    #endif
                 }
                 exit_flag = true;
                 if (t_cap.joinable()) t_cap.join();
@@ -919,10 +938,11 @@ int main(int argc, char *argv[])
                 std::atomic<bool> consumed, videowrite_ready;
                 consumed = true;
                 videowrite_ready = true;
-                std::atomic<int> fps_det_counter, fps_cap_counter;
-                fps_det_counter = 0;
-                fps_cap_counter = 0;
-                int current_det_fps = 0, current_cap_fps = 0;
+                std::atomic<int> fps_det_counter, fps_cap_counter, tracking_counter;
+                fps_det_counter  = 0;
+                fps_cap_counter  = 0;
+                tracking_counter = 0;
+                int current_det_fps = 0, current_cap_fps = 0, cur_tracking_fps = 0;
                 std::thread t_detect, t_cap, t_videowrite;
                 std::mutex mtx;
                 std::condition_variable cv_detected, cv_pre_tracked;
@@ -1011,10 +1031,12 @@ int main(int argc, char *argv[])
                         auto old_result_vec = detector.tracking_id(result_vec);
                         auto detected_result_vec = thread_result_vec;
                         result_vec = detected_result_vec;
-#ifdef TRACK_OPTFLOW
-                        // track optical flow
-                        if (track_optflow_queue.size() > 0) 
+                        
+                        if(tracking)
                         {
+                          // track optical flow
+                          if (track_optflow_queue.size() > 0) 
+                          {
                             //std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
                             cv::Mat first_frame = track_optflow_queue.front();
                             tracker_flow.update_tracking_flow(track_optflow_queue.front(), result_vec);
@@ -1033,11 +1055,13 @@ int main(int argc, char *argv[])
                             extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
                             old_time_extrapolate = cur_time_extrapolate;
                             extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
+                          }
                         }
-#else
-                        result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
-                        extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
-#endif
+                        else
+                        {
+                          result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
+                          extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
+                        }
                         // add old tracked objects
                         for (auto &i : old_result_vec) {
                             auto it = std::find_if(result_vec.begin(), result_vec.end(),
@@ -1053,10 +1077,13 @@ int main(int argc, char *argv[])
                                 it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
                             }
                         }
-#ifdef TRACK_OPTFLOW
-                        tracker_flow.update_cur_bbox_vec(result_vec);
-                        result_vec = tracker_flow.tracking_flow(cur_frame, true);   // track optical flow
-#endif
+
+                        if(tracking)
+                        {
+                          tracker_flow.update_cur_bbox_vec(result_vec);
+                          result_vec = tracker_flow.tracking_flow(cur_frame, true);   // track optical flow
+                        }
+
                         consumed = false;
                         cv_pre_tracked.notify_all();
                     }
@@ -1088,21 +1115,26 @@ int main(int argc, char *argv[])
                         steady_end = std::chrono::steady_clock::now();
                         if (std::chrono::duration<double>(steady_end - steady_start).count() >= 1) 
                         {
-                            current_det_fps = fps_det_counter;
-                            current_cap_fps = fps_cap_counter;
+                            current_det_fps  = fps_det_counter;
+                            current_cap_fps  = fps_cap_counter;
+                            cur_tracking_fps = tracking_counter;
                             steady_start = steady_end;
-                            fps_det_counter = 0;
-                            fps_cap_counter = 0;
+                            fps_det_counter  = 0;
+                            fps_cap_counter  = 0;
+                            tracking_counter = 0;
                         }
 
                         large_preview.set(cur_frame, result_vec);
-#ifdef TRACK_OPTFLOW
+
                         ++passed_flow_frames;
                         track_optflow_queue.push(cur_frame.clone());
+
                         result_vec = tracker_flow.tracking_flow(cur_frame); // track optical flow
+                        ++tracking_counter;
+
                         extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
                         small_preview.draw(cur_frame, show_small_boxes);
-#endif                      
+                 
                         auto result_vec_draw = result_vec;
                         if (extrapolate_flag) 
                         {
@@ -1113,8 +1145,9 @@ int main(int argc, char *argv[])
                         if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy );
                         else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy );
 
-                        std::cout << "Detection FPS: " << current_det_fps << std::endl;
-                        std::cout << "Capture   FPS: " << current_cap_fps << std::endl;
+                        std::cout << "Detection FPS: " << current_det_fps  << "\n";
+                        std::cout << "Capture   FPS: " << current_cap_fps  << "\n";
+                        std::cout << "Tracking  FPS: " << cur_tracking_fps << "\n";
                         show_console_result_distances( result_vec, obj_names );
                         
                         // Make Results always be on top of Console
@@ -1129,8 +1162,9 @@ int main(int argc, char *argv[])
                             //cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
 
                             cv::imshow("OpenCV Display Window", cur_frame);
-                            int key = cv::waitKey(3);   // 3 or 16ms
+                            int key = cv::waitKey(1);   // 3 or 16ms
                             if (key == 'f') show_small_boxes = !show_small_boxes;
+                            if (key == 't') tracking = !tracking;
                             if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
                             if (key == 'e') extrapolate_flag = !extrapolate_flag;
                         }
@@ -1148,14 +1182,12 @@ int main(int argc, char *argv[])
                         }
                     }
 
-#ifndef TRACK_OPTFLOW
                     // wait detection result for video-file only (not for net-cam)
                     if ( record_stream ) 
                     {
                         std::unique_lock<std::mutex> lock(mtx);
                         while (!consumed) cv_detected.wait(lock);
                     }
-#endif
                 }
                 if (t_cap.joinable()) t_cap.join();
                 if (t_detect.joinable()) t_detect.join();
