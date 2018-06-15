@@ -4,6 +4,8 @@
 *.out
 *.png
 *.so
+*.a
+
 mnist/
 data/
 caffe/
