@@ -801,7 +801,7 @@ int main(int argc, char *argv[])
                             if (key == 27) { exit_flag = true; break; }
                         }
                             
-                        if (output_video.isOpened() && videowrite_ready) 
+                        if (output_video.isOpened() && videowrite_ready && record_stream) 
                         {
                           if (t_videowrite.joinable()) t_videowrite.join();
                           write_frame = cur_frame.clone();
@@ -812,8 +812,8 @@ int main(int argc, char *argv[])
                           });
                         }
                      }
-
-                    if(tracking)
+                    
+                    if( record_stream && !tracking )
                     {
                       // wait detection result for video-file only (not for net-cam)
                       if (protocol != "rtsp://" && protocol != "http://" && protocol != "https:/") 
@@ -822,6 +822,7 @@ int main(int argc, char *argv[])
                         while (!consumed) cv_detected.wait(lock);
                       }
                     }
+                    
                 }
                 exit_flag = true;
                 if (t_cap.joinable()) t_cap.join();
@@ -984,8 +985,8 @@ int main(int argc, char *argv[])
 
                 cv::Size const frame_size = cur_frame.size();
                 std::cout << frame_size.width << " " << frame_size.height << std::endl;
-                cv::VideoWriter output_video;
                 // Record Stream
+                cv::VideoWriter output_video;
                 if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, cam_video_fps), frame_size, true);
 
                 while (!cur_frame.empty()) 
@@ -1154,10 +1155,13 @@ int main(int argc, char *argv[])
                         std::cout << "\033[2J";
                         std::cout << "\033[1;1H";       
 
-                        if ( live_demo )
+                        if ( live_demo || record_stream )
                         {
                             draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
                             large_preview.draw(cur_frame);
+                        }
+                        if (  live_demo )
+                        {
 
                             //cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
 
@@ -1170,7 +1174,7 @@ int main(int argc, char *argv[])
                         }
                                                     
 
-                        if (output_video.isOpened() && videowrite_ready) 
+                        if (output_video.isOpened() && videowrite_ready && record_stream) 
                         {
                             if (t_videowrite.joinable()) t_videowrite.join();
                             write_frame = cur_frame.clone();
@@ -1183,7 +1187,7 @@ int main(int argc, char *argv[])
                     }
 
                     // wait detection result for video-file only (not for net-cam)
-                    if ( record_stream ) 
+                    if ( record_stream && !tracking ) 
                     {
                         std::unique_lock<std::mutex> lock(mtx);
                         while (!consumed) cv_detected.wait(lock);
