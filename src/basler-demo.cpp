@@ -6,6 +6,7 @@
 #include <fstream>
 #include <thread>
 #include <atomic>
+#include <functional>
 #include <mutex>              // std::mutex, std::unique_lock
 #include <condition_variable> // std::condition_variable
 #include <boost/program_options.hpp> //Nice argparser
@@ -224,6 +225,19 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     cones.size = boxes.size();
 
     int index = 0;
+
+    //  Remove detections that clip boundaries of the screen
+    std::remove_if(
+            boxes.begin(),
+            boxes.end(),
+            [image_width, image_height](bbox_t & box)
+            {
+               return
+               (box.x - box.w/2) <= 0            ||
+               (box.x + box.w/2) >= image_width  ||
+               (box.y - box.y/2) <= 0            ||
+               (box.y + box.y/2) >= image_height;
+            });
 
     std::chrono::steady_clock::time_point steady_clara_measure = std::chrono::steady_clock::now();
     std::chrono::duration<double> clara_delta = steady_clara_measure - steady_clara_start;
