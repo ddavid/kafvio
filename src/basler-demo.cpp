@@ -466,9 +466,9 @@ int main(int argc, char *argv[])
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help", "produce help message")
-        ("classes", po::value<std::string>(&names_file)->default_value("/home/nvidia/Documents/github-repos/fsd-darknet/data/cones.names"), ".txt or .list file with one class name per line")
-        ("config", po::value<std::string>(&cfg_file)->default_value("/home/nvidia/Documents/github-repos/fsd-darknet/cfg/yolov3-hires.cfg"),  "Darknet .cfg file")
-        ("weights", po::value<std::string>(&weights_file)->default_value("~/ssd/usb_weights/yolov3-hires_20000.weights"), "Darknet .weights file")
+        ("classes", po::value<std::string>(&names_file)->default_value("/home/nvidia/Documents/github-repos/darknet-cvAlexey/data/cones.names"), ".txt or .list file with one class name per line")
+        ("config", po::value<std::string>(&cfg_file)->default_value("/home/nvidia/Documents/github-repos/darknet-cvAlexey/cfg/yolov3-hires.cfg"),  "Darknet .cfg file")
+        ("weights", po::value<std::string>(&weights_file)->default_value("/home/nvidia/Documents/github-repos/darknet-cvAlexey/weights/yolov3-hires_20000.weights"), "Darknet .weights file")
         ("image_file", po::value<std::string>(&filename), "Single Image file to run detection on")
         ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
         ("video_file", po::value<std::string>(&filename), "Single Video file to run detection on")
@@ -491,14 +491,13 @@ int main(int argc, char *argv[])
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
-
-    /*
-    if (argc == 1 || vm.count("help"))
+ 
+    if (vm.count("help"))
     {
         std::cout << desc << "\n";
         return 1;
     }
-    */
+
     // Set Distance Estimation
     if      ( strategy_index == 0 ) distance_strategy = Distance_Strategy::CONE_HEIGHT;
     else if ( strategy_index == 1 ) distance_strategy = Distance_Strategy::CONE_WIDTH;
@@ -564,7 +563,7 @@ int main(int argc, char *argv[])
 
     auto obj_names = objects_names_from_file(names_file);
         
-    std::string out_videofile = "result.avi";
+    std::string out_videofile = "/home/nvidia/Documents/github-repos/modi-scheduler/darknet-recording.avi";
 
     connector::client< connector::TCP > tcp_sender( port, ip );
     connector::client< connector::UDP > udp_sender( port, ip );
@@ -623,7 +622,7 @@ int main(int argc, char *argv[])
                 cv::Size const frame_size = cur_frame.size();
                 cv::VideoWriter output_video;
                 // Stream Recording
-                if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, video_fps), frame_size, true);
+                if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), std::max(35, video_fps), frame_size, true);
 
                 while (!cur_frame.empty()) 
                 {
@@ -987,7 +986,7 @@ int main(int argc, char *argv[])
                 std::cout << frame_size.width << " " << frame_size.height << std::endl;
                 // Record Stream
                 cv::VideoWriter output_video;
-                if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('D', 'I', 'V', 'X'), std::max(35, cam_video_fps), frame_size, true);
+                if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), std::max(35, cam_video_fps), frame_size, true);
 
                 while (!cur_frame.empty()) 
                 {
@@ -1155,15 +1154,14 @@ int main(int argc, char *argv[])
                         std::cout << "\033[2J";
                         std::cout << "\033[1;1H";       
 
-                        if ( live_demo || record_stream )
-                        {
-                            draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
-                            large_preview.draw(cur_frame);
-                        }
+                        if ( live_demo || record_stream ) draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+                        
                         if (  live_demo )
                         {
 
                             //cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
+
+                            large_preview.draw(cur_frame);
 
                             cv::imshow("OpenCV Display Window", cur_frame);
                             int key = cv::waitKey(1);   // 3 or 16ms
@@ -1174,13 +1172,13 @@ int main(int argc, char *argv[])
                         }
                                                     
 
-                        if (output_video.isOpened() && videowrite_ready && record_stream) 
+                        if (output_video.isOpened() && videowrite_ready && record_stream)
                         {
                             if (t_videowrite.joinable()) t_videowrite.join();
                             write_frame = cur_frame.clone();
                             videowrite_ready = false;
-                            t_videowrite = std::thread([&]() 
-                            { 
+                            t_videowrite = std::thread([&]()
+                            {
                                  output_video << write_frame; videowrite_ready = true;
                             });
                         }
