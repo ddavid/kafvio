@@ -190,10 +190,10 @@ public:
 };
 
 object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat )
-{   
+{
     // Dirty conversion before adjusting bbox_t
 
-    const double image_height = 1024.0; 
+    const double image_height = 1024.0;
     const double image_width  = 1280.0;
 
     // AOV calculated in 
@@ -207,7 +207,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
 
     // All sensor and lens measures are in μm
 
-    const double focal_length  = 4000.0;
+    const double focal_length  = 4210.0;
     const double sensor_width  = 6182.4;
     const double sensor_height = 4953.6;
 
@@ -219,25 +219,25 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     const double large_cone_width  = 285000.0;
     const double large_cone_height = 505000.0; 
 
-    //Create list with length of detection vector
-    //object_list_t *cones = object_list__new(boxes.size());
-    object_list_t       cones;
-    cones.size = boxes.size();
-
     int index = 0;
 
     //  Remove detections that clip boundaries of the screen
-    std::remove_if(
+    boxes.erase(std::remove_if(
             boxes.begin(),
             boxes.end(),
             [image_width, image_height](bbox_t & box)
             {
                return
-               (box.x - box.w/2) <= 0            ||
-               (box.x + box.w/2) >= image_width  ||
-               (box.y - box.y/2) <= 0            ||
-               (box.y + box.y/2) >= image_height;
-            });
+                box.x          <= 0            ||
+               (box.x + box.w) >= image_width  ||
+                box.y          <= 0            ||
+               (box.y + box.h) >= image_height;
+            }), boxes.end());
+
+    //Create list with length of detection vector
+    //object_list_t *cones = object_list__new(boxes.size());
+    object_list_t       cones;
+    cones.size = boxes.size();
 
     std::chrono::steady_clock::time_point steady_clara_measure = std::chrono::steady_clock::now();
     std::chrono::duration<double> clara_delta = steady_clara_measure - steady_clara_start;
@@ -255,10 +255,10 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 double straight_distance;
 
                 // Angles in FZModell-Koordinaten
-                double angle     = ( box.x / image_width ) * (- h_AOV) + ( h_AOV / 2);
+                double angle     = (( box.x + box.w/2 ) / image_width ) * (- h_AOV) + ( h_AOV / 2);
 
 
-                if(box.obj_id > 2) perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;  
+                if(box.obj_id > 2) perpendicular_distance = ((large_cone_height * focal_length) / height_on_sensor) / 1000000.0;
                 else  perpendicular_distance = ((small_cone_height * focal_length) / height_on_sensor) / 1000000.0;
 
                 straight_distance = perpendicular_distance / std::cos( angle );
@@ -293,7 +293,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 double straight_distance;
 
                 // Angles in FZModell-Koordinaten
-                double angle     = ( box.x / image_width ) * (- h_AOV) + ( h_AOV / 2);
+                double angle     = (( box.x + box.w/2 ) / image_width ) * (- h_AOV) + ( h_AOV / 2);
                 
                 if(box.obj_id > 2) perpendicular_distance = ((large_cone_width * focal_length) / width_on_sensor) / 1000000.0;
                 else perpendicular_distance = ((small_cone_width * focal_length) / width_on_sensor) / 1000000.0;
