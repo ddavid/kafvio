@@ -1000,7 +1000,7 @@ int main(int argc, char *argv[])
                 std::cout << frame_size.width << " " << frame_size.height << std::endl;
                 // Record Stream
                 cv::VideoWriter output_video;
-                if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), std::max(35, cam_video_fps), frame_size, true);
+                if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), /*std::max(35, cam_video_fps)*/ 30, frame_size, true);
 
                 while (!cur_frame.empty()) 
                 {
