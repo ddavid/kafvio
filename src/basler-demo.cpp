@@ -1136,12 +1136,14 @@ int main(int argc, char *argv[])
                         }
 
                         large_preview.set(cur_frame, result_vec);
+                        if (tracking)
+                        {
+                          ++passed_flow_frames;
+                          track_optflow_queue.push(cur_frame.clone());
 
-                        ++passed_flow_frames;
-                        track_optflow_queue.push(cur_frame.clone());
-
-                        result_vec = tracker_flow.tracking_flow(cur_frame); // track optical flow
-                        ++tracking_counter;
+                          result_vec = tracker_flow.tracking_flow(cur_frame); // track optical flow
+                          ++tracking_counter;
+                        }
 
                         extrapolate_coords.update_result(result_vec, cur_time_extrapolate);
                         small_preview.draw(cur_frame, show_small_boxes);
