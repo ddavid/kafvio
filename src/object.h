@@ -56,8 +56,9 @@ typedef struct {
  *    * `object_t`: element is an array of `object_t` elements
  */
 typedef struct {
-    uint32_t     size;
+    uint32_t  size;
     object_t  element[MAX_LISTSIZE];
+    double    time_s;
 } object_list_t;
 
 

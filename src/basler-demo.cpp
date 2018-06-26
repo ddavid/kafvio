@@ -312,7 +312,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     // Put object_t's into real list
     object_list_t cones;
     cones.size  = tmp_objects.size();
-
+    cones.time_s = clara_delta.count();
 
     for(int i = 0; i < tmp_objects.size(); i++)
     {
@@ -426,7 +426,7 @@ void send_objects_udp(std::vector<bbox_t> const result_vec, connector::client< c
     
     sender.send_udp< uint32_t >( objects.size );
     sender.send_udp< object_t >( objects.element[0], objects.size * sizeof( object_t ));
-
+    sender.send_udp< double   >( objects.time_s );
     //free(objects);    
 }
 
