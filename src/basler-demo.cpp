@@ -1171,7 +1171,6 @@ int main(int argc, char *argv[])
                         
                         if (  live_demo )
                         {
-
                             //cv::namedWindow( "OpenCV Display Window", CV_WINDOW_NORMAL);
 
                             large_preview.draw(cur_frame);
@@ -1183,7 +1182,6 @@ int main(int argc, char *argv[])
                             if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
                             if (key == 'e') extrapolate_flag = !extrapolate_flag;
                         }
-                                                    
 
                         if (output_video.isOpened() && videowrite_ready && record_stream)
                         {
@@ -1198,11 +1196,11 @@ int main(int argc, char *argv[])
                     }
 
                     // wait detection result for video-file only (not for net-cam)
-                    if ( record_stream && !tracking ) 
+                    /*if ( record_stream ) 
                     {
                         std::unique_lock<std::mutex> lock(mtx);
                         while (!consumed) cv_detected.wait(lock);
-                    }
+                    }*/
                 }
                 if (t_cap.joinable()) t_cap.join();
                 if (t_detect.joinable()) t_detect.join();
