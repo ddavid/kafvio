@@ -1047,7 +1047,7 @@ int main(int argc, char *argv[])
                         cur_frame = cap_frame.clone();
                     }
                     t_cap = std::thread([&]() 
-                    { 
+                    {
                         if(camera.IsGrabbing())
                         {
                             camera.RetrieveResult( 5000, ptrGrabResult, Pylon::ETimeoutHandling::TimeoutHandling_ThrowException);
@@ -1084,7 +1084,7 @@ int main(int argc, char *argv[])
                         if(tracking)
                         {
                           // track optical flow
-                          if (track_optflow_queue.size() > 0) 
+                          if (track_optflow_queue.size() > 0)
                           {
                             //std::cout << "\n !!!! all = " << track_optflow_queue.size() << ", cur = " << passed_flow_frames << std::endl;
                             cv::Mat first_frame = track_optflow_queue.front();
@@ -1104,18 +1104,16 @@ int main(int argc, char *argv[])
                             extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
                             old_time_extrapolate = cur_time_extrapolate;
                             extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
-                            // Connector Stuff
-                            if ( !tracking )
-                            {
-                              if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
-                              else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
-                            }
                           }
                         }
+                        // Detections only
                         else
                         {
                           result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
                           extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
+                        // Connector Stuff
+                        if ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
+                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
                         }
                         // add old tracked objects
                         for (auto &i : old_result_vec) {
