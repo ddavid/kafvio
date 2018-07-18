@@ -52,7 +52,7 @@
 
 namespace po = boost::program_options;
 
-enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1 };
+enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1, CONE_AVERAGE = 2 };
 
 const int IMAGE_HEIGHT = 1024;
 const int IMAGE_WIDTH  = 1280;
@@ -222,18 +222,18 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     int index = 0;
 
     //  Remove detections that clip boundaries of the screen
-    boxes.erase(std::remove_if(
+    /*boxes.erase(std::remove_if(
             boxes.begin(),
             boxes.end(),
             [image_width, image_height](bbox_t & box)
-            {
+           {
                return
                 box.x          <= 0            ||
                (box.x + box.w) >= image_width  ||
                 box.y          <= 0            ||
                (box.y + box.h) >= image_height;
             }), boxes.end());
-
+    */
     std::vector<object_t> tmp_objects;
 
     std::chrono::steady_clock::time_point steady_clara_measure = std::chrono::steady_clock::now();
@@ -247,6 +247,10 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
         double small_cone_dimension;
         double large_cone_dimension;
 
+        double snd_dimension_on_sensor;
+        double snd_small_cone_dimension;
+        double snd_large_cone_dimension;
+
         switch( strat )
         {
             case CONE_HEIGHT:
@@ -257,19 +261,47 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
                 dimension_on_sensor  = (box.w / image_width) * sensor_width;
                 small_cone_dimension = small_cone_width;
                 large_cone_dimension = large_cone_width;
+            case CONE_AVERAGE:
+                dimension_on_sensor  = (box.h / image_height) * sensor_height;
+                snd_dimension_on_sensor  = (box.w / image_width) * sensor_width;
+
+                small_cone_dimension = small_cone_height;
+                snd_small_cone_dimension = small_cone_width;
+
+                large_cone_dimension = large_cone_height;
+                snd_large_cone_dimension = large_cone_width;
         }
 
         double perpendicular_distance;
+        double snd_perpendicular_distance;
+
         double straight_distance;
+        double snd_straight_distance;
 
         // Angles in FZModell-Koordinaten
         double angle     = (( box.x + box.w/2 ) / image_width ) * (- h_AOV) + ( h_AOV / 2);
 
 
-        if(box.obj_id > 2) perpendicular_distance = ((large_cone_dimension * focal_length) / dimension_on_sensor) / 1000000.0;
-        else  perpendicular_distance = ((small_cone_dimension * focal_length) / dimension_on_sensor) / 1000000.0;
+        if(box.obj_id > 2)
+        {
+            perpendicular_distance = ((large_cone_dimension * focal_length) / dimension_on_sensor) / 1000000.0;
+            if( strat == CONE_AVERAGE ) snd_perpendicular_distance = ((snd_large_cone_dimension * focal_length) / snd_dimension_on_sensor) / 1000000.0;
+        }
+        else
+        {
+            perpendicular_distance = ((small_cone_dimension * focal_length) / dimension_on_sensor) / 1000000.0;
+            if( strat == CONE_AVERAGE ) snd_perpendicular_distance = ((snd_small_cone_dimension * focal_length) / snd_dimension_on_sensor) / 1000000.0;
+        }
+
+        //if (strat == CONE_AVERAGE) perpendicular_distance = ( perpendicular_distance + snd_perpendicular_distance ) / 2.0;
 
         straight_distance = perpendicular_distance / std::cos( angle );
+        if (strat == CONE_AVERAGE)
+        {
+            snd_straight_distance = snd_perpendicular_distance / std::cos( angle );
+            //std::cout << straight_distance << "\n" << snd_straight_distance << "\n";
+            straight_distance = ( straight_distance + snd_straight_distance ) / 2;
+        }
 
         if(straight_distance < distance_threshold)
         {
@@ -285,6 +317,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
             temp.ax = 0;
             temp.ay = 0;
             temp.yaw_rate = 0;
+            temp.steering_rad = 0;
             temp.time_s = clara_delta.count();
 
             tmp_objects.push_back(temp);
@@ -303,6 +336,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
             temp.ax = 0;
             temp.ay = 0;
             temp.yaw_rate = 0;
+            temp.steering_rad = 0;
             temp.time_s = clara_delta.count();
 
             tmp_objects.push_back(temp);
@@ -318,7 +352,6 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     {
         cones.element[i] = tmp_objects[i];
     }
-
     return cones;
 }
 
@@ -371,16 +404,20 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
         object_list_t  width_objects  = bbox_into_object_list(result_vec, Distance_Strategy::CONE_WIDTH);
         //Height distance estimation
         object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
-        
+        //Average distance estimation
+        object_list_t  avg_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_AVERAGE);
+
         for (auto &i : result_vec) 
         {
-        if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
+            if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
         std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
                   << ", w = " << i.w << ", h = " << i.h
-              << std::setprecision(3) << ", prob = " << i.prob 
-                      << ", distance_width = " << width_objects.element[count].distance << std::setprecision(6) 
-                      << ", distance_height = " << height_objects.element[count].distance
-                      << ", angle = " << height_objects.element[count].angle << '\n';
+                  << std::setprecision(3) << ", prob = " << i.prob
+                  << std::setprecision(6) << ", distance_width = " << width_objects.element[count].distance
+                  << ", distance_height = " << height_objects.element[count].distance
+                  << ", avg_height = " << avg_objects.element[count].distance
+
+                  << ", angle = " << height_objects.element[count].angle << '\n';
             count++;
     }
         
@@ -494,7 +531,7 @@ int main(int argc, char *argv[])
         ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
         ("udp_test", po::value<int>(&udp_test)->default_value(1), "If true, sends objects to specified ip:port")
         ("tcp_test", po::value<int>(&tcp_test)->default_value(0), "If true, sends objects to specified ip:port")
-        ("distance_strategy", po::value<int>(&strategy_index)->default_value(0), "Sets the distance estimation strategy to be used.\n0 := Height\n1 := Width")
+        ("distance_strategy", po::value<int>(&strategy_index)->default_value(0), "Sets the distance estimation strategy to be used.\n0 := Height\n1 := Width.\n2 := Average")
         ("distance_threshold", po::value<double>(&distance_threshold)->default_value(20.0), "Sets the distance threshold value over which no detections are forwarded")
 
     ;
@@ -512,7 +549,8 @@ int main(int argc, char *argv[])
     // Set Distance Estimation
     if      ( strategy_index == 0 ) distance_strategy = Distance_Strategy::CONE_HEIGHT;
     else if ( strategy_index == 1 ) distance_strategy = Distance_Strategy::CONE_WIDTH;
-   
+    else if ( strategy_index == 2 ) distance_strategy = Distance_Strategy::CONE_AVERAGE;
+
     std::cout << "Using Distance Strat: " << distance_strategy << std::endl;
 
     // create a 3x3 double-precision camera matrix
@@ -1066,6 +1104,12 @@ int main(int argc, char *argv[])
                             extrapolate_coords.new_result(tmp_result_vec, old_time_extrapolate);
                             old_time_extrapolate = cur_time_extrapolate;
                             extrapolate_coords.update_result(result_vec, cur_time_extrapolate - 1);
+                            // Connector Stuff
+                            if ( !tracking )
+                            {
+                              if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
+                              else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
+                            }
                           }
                         }
                         else
@@ -1154,10 +1198,11 @@ int main(int argc, char *argv[])
                             result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
                             cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
                         }
-
-                        if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
-                        else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
-
+                        if ( tracking )
+                        {
+                          if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
+                          else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
+                        }
                         std::cout << "Detection FPS: " << current_det_fps  << "\n";
                         std::cout << "Capture   FPS: " << current_cap_fps  << "\n";
                         std::cout << "Tracking  FPS: " << cur_tracking_fps << "\n";

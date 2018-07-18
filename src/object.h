@@ -44,8 +44,10 @@ typedef struct {
     double distance; 
     double angle; 
     double time_s;
+    double steering_rad;
     int type;
 } object_t;
+
 
 
 /*
