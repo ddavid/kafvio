@@ -22,12 +22,9 @@
 #define OPENCV
 #define GPU
 
-//#include "yolo_v2_class.hpp"        // imported functions from DLL
-#include "opencv_utils.hpp"
-#include "detector-wrapper.hpp"
-#include "tracker.hpp"
-
-#include "object.h"                 // municHMotorsport Object
+#include "yolo_v2_class.hpp"        // imported functions from DLL
+//#include "object.hpp"             // Old Dirty, dirty FSD Object
+#include "object.h"
 #include <connector-1.0/client.h>   // Jussie & Alex: UDP/TCP Connector 
 
 #include <pylon/PylonIncludes.h>    // Pylon SDK
