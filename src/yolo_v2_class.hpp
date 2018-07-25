@@ -19,6 +19,8 @@ struct bbox_t {
 	unsigned int obj_id;		// class of object - from range [0, classes-1]
 	unsigned int track_id;		// tracking id for video (0 - untracked, 1 - inf - tracked object)
 	unsigned int frames_counter;// counter of frames on which the object was detected
+
+	//TODO Converting Constructor for object_t
 };
 
 struct image_t {
@@ -37,11 +39,9 @@ struct image_t {
 #include <algorithm>
 #include <boost/cstdint.hpp>
 
-#ifdef OPENCV
 #include <opencv2/opencv.hpp>			// C++
 #include "opencv2/highgui/highgui_c.h"	// C
 #include "opencv2/imgproc/imgproc_c.h"	// C
-#endif	// OPENCV
 
 class Detector {
 	std::shared_ptr<void> detector_gpu_ptr;
@@ -74,7 +74,6 @@ public:
 		return detection_boxes;
 	}
 
-#ifdef OPENCV
 	std::vector<bbox_t> detect(cv::Mat mat, float thresh = 0.2, bool use_mean = false)
 	{
 		if(mat.data == NULL)
@@ -141,15 +140,8 @@ private:
 		out.data = (float *)calloc(h*w*c, sizeof(float));
 		return out;
 	}
-
-#endif	// OPENCV
-
 };
-
-
-
-#if defined(TRACK_OPTFLOW) && defined(OPENCV) && defined(GPU)
-
+// Tracker
 #include <opencv2/cudaoptflow.hpp>
 #include <opencv2/cudaimgproc.hpp>
 #include <opencv2/cudaarithm.hpp>
@@ -324,10 +316,10 @@ public:
 
 };
 
-#elif defined(TRACK_OPTFLOW) && defined(OPENCV)
+// CPU Tracking Version
 
 //#include <opencv2/optflow.hpp>
-#include <opencv2/video/tracking.hpp>
+/*#include <opencv2/video/tracking.hpp>
 
 class Tracker_optflow {
 public:
@@ -441,13 +433,7 @@ public:
 
 };
 #else
-
-class Tracker_optflow {};
-
-#endif	// defined(TRACK_OPTFLOW) && defined(OPENCV)
-
-
-#ifdef OPENCV
+*/
 
 cv::Scalar obj_id_to_color(int obj_id) {
 
@@ -592,55 +578,5 @@ public:
 		}
 	}
 };
-#endif	// OPENCV
-
 //extern "C" {
 #endif	// __cplusplus
-
-/*
-	// C - wrappers
-	YOLODLL_API void create_detector(char const* cfg_filename, char const* weight_filename, int gpu_id);
-	YOLODLL_API void delete_detector();
-	YOLODLL_API bbox_t* detect_custom(image_t img, float thresh, bool use_mean, int *result_size);
-	YOLODLL_API bbox_t* detect_resized(image_t img, int init_w, int init_h, float thresh, bool use_mean, int *result_size);
-	YOLODLL_API bbox_t* detect(image_t img, int *result_size);
-	YOLODLL_API image_t load_img(char *image_filename);
-	YOLODLL_API void free_img(image_t m);
-
-#ifdef __cplusplus
-}	// extern "C"
-
-static std::shared_ptr<void> c_detector_ptr;
-static std::vector<bbox_t> c_result_vec;
-
-void create_detector(char const* cfg_filename, char const* weight_filename, int gpu_id) {
-	c_detector_ptr = std::make_shared<YOLODLL_API Detector>(cfg_filename, weight_filename, gpu_id);
-}
-
-void delete_detector() { c_detector_ptr.reset(); }
-
-bbox_t* detect_custom(image_t img, float thresh, bool use_mean, int *result_size) {
-	c_result_vec = static_cast<Detector*>(c_detector_ptr.get())->detect(img, thresh, use_mean);
-	*result_size = c_result_vec.size();
-	return c_result_vec.data();
-}
-
-bbox_t* detect_resized(image_t img, int init_w, int init_h, float thresh, bool use_mean, int *result_size) {
-	c_result_vec = static_cast<Detector*>(c_detector_ptr.get())->detect_resized(img, init_w, init_h, thresh, use_mean);
-	*result_size = c_result_vec.size();
-	return c_result_vec.data();
-}
-
-bbox_t* detect(image_t img, int *result_size) {
-	return detect_custom(img, 0.24, true, result_size);
-}
-
-image_t load_img(char *image_filename) {
-	return static_cast<Detector*>(c_detector_ptr.get())->load_image(image_filename);
-}
-void free_img(image_t m) {
-	static_cast<Detector*>(c_detector_ptr.get())->free_image(m);
-}
-
-#endif	// __cplusplus
-*/

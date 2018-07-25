@@ -44,8 +44,10 @@ typedef struct {
     double distance; 
     double angle; 
     double time_s;
+    double steering_rad;
     int type;
 } object_t;
+
 
 
 /*
@@ -56,8 +58,9 @@ typedef struct {
  *    * `object_t`: element is an array of `object_t` elements
  */
 typedef struct {
-    uint32_t     size;
+    uint32_t  size;
     object_t  element[MAX_LISTSIZE];
+    double    time_s;
 } object_list_t;
 
 

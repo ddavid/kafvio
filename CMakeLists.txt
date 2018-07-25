@@ -16,7 +16,7 @@ endif()
 set(DEBUG 1)
 #set(GPU 1)
 set(PYLON 1)
-set(CUDNN 1)
+set(CUDNN 0)
 set(VISIONWORKS 1)
 
 #set (CMAKE_BUILD_TYPE  DEBUG)
@@ -136,16 +136,16 @@ link_directories(
     src
 )
 
-add_executable(main
+add_executable(darknet-run
     src/basler-demo.cpp
     src/yolo_v2_class.hpp
     src/object.h  
 )
 
-add_executable(tracker
-    vision-works/main_object_tracker.cpp)
+#add_executable(tracker
+#    vision-works/main_object_tracker.cpp)
 
-target_link_libraries(main 
+target_link_libraries(darknet-run 
     ${OpenCV_LIBS}
     ${PYLON_LIBRARIES} 
     ${CUDNN_LIBRARIES}
@@ -158,24 +158,24 @@ target_link_libraries(main
     curand
 )
 
-target_link_libraries(tracker
-    ${OpenCV_LIBS}
-    ${PYLON_LIBRARIES} 
-    ${CUDNN_LIBRARIES}
-    ${Boost_LIBRARIES}
-    ${VisionWorks_LIBRARIES} 
-    ovx
-    nvx
-    ${GST_LIBRARIES}
-    visionworks_tracking.so
-    glfw
-    ${X11_LIBRARIES}
-    ${OPENGL_LIBRARIES}
-    ${FREETYPE_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    darknet
-    cuda 
-    cudart 
-    cublas 
-    curand
-)
+#target_link_libraries(tracker
+#    ${OpenCV_LIBS}
+#    ${PYLON_LIBRARIES} 
+#    ${CUDNN_LIBRARIES}
+#    ${Boost_LIBRARIES}
+#    ${VisionWorks_LIBRARIES} 
+#    ovx
+#    nvx
+#    ${GST_LIBRARIES}
+#    visionworks_tracking.so
+#    glfw
+#    ${X11_LIBRARIES}
+#   ${OPENGL_LIBRARIES}
+#    ${FREETYPE_LIBRARIES}
+#    ${CMAKE_THREAD_LIBS_INIT}
+#    darknet
+#    cuda 
+#    cudart 
+#    cublas 
+#    curand
+#)

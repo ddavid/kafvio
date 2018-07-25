@@ -70,7 +70,7 @@ endif
 VISION_WORKS_CFLAGS := $(shell pkg-config --cflags visionworks)
 CUDA_CFLAGS := $(shell pkg-config --cflags cudart-8.0)
 
-EIGEN_CFLAGS := -I./3rdparty/eigen
+EIGEN_CFLAGS := -I./3rdparty/eigen -I /usr/include/eigen3
 NVXIO_CFLAGS := -DCUDA_API_PER_THREAD_DEFAULT_STREAM -DUSE_GUI=1 -DUSE_GLFW=1  -DUSE_GSTREAMER=1
 NVXIO_CFLAGS += -I./include  -I./3rdparty/opengl $(shell pkg-config --cflags freetype2) -I./3rdparty/glfw3/include  -I./3rdparty/opengl $(shell pkg-config --cflags gstreamer-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
 
