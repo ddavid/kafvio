@@ -1201,14 +1201,14 @@ int main(int argc, char *argv[])
                           if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
                           else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
                         }
-                        std::cout << "Detection FPS: " << current_det_fps  << "\n";
-                        std::cout << "Capture   FPS: " << current_cap_fps  << "\n";
-                        std::cout << "Tracking  FPS: " << cur_tracking_fps << "\n";
-                        show_console_result_distances( result_vec, obj_names );
+                        //std::cout << "Detection FPS: " << current_det_fps  << "\n";
+                        //std::cout << "Capture   FPS: " << current_cap_fps  << "\n";
+                        //std::cout << "Tracking  FPS: " << cur_tracking_fps << "\n";
+                        //show_console_result_distances( result_vec, obj_names );
                         
                         // Make Results always be on top of Console
-                        std::cout << "\033[2J";
-                        std::cout << "\033[1;1H";       
+                        //std::cout << "\033[2J";
+                        //std::cout << "\033[1;1H";       
 
                         if ( live_demo || record_stream ) draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
                         
