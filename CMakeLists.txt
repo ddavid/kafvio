@@ -142,10 +142,29 @@ add_executable(darknet-run
     src/object.h  
 )
 
+add_executable(darknet-debug
+    src/darknet-debug.cpp
+    src/detector-wrapper.hpp
+    src/object.h  
+)
+
 #add_executable(tracker
 #    vision-works/main_object_tracker.cpp)
 
 target_link_libraries(darknet-run 
+    ${OpenCV_LIBS}
+    ${PYLON_LIBRARIES} 
+    ${CUDNN_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_LIBRARIES}
+    darknet
+    cuda 
+    cudart 
+    cublas 
+    curand
+)
+
+target_link_libraries(darknet-debug
     ${OpenCV_LIBS}
     ${PYLON_LIBRARIES} 
     ${CUDNN_LIBRARIES}

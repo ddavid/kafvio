@@ -202,6 +202,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
     return cones;
 }
 
+// Put into opencv-utils after decoupling distance estimation and list creation
 void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, double distance_threshold, int current_det_fps = -1, int current_cap_fps = -1)
 {
     object_list_t height_objects = bbox_into_object_list( result_vec, Distance_Strategy::CONE_HEIGHT, distance_threshold);
@@ -447,7 +448,7 @@ int main(int argc, char *argv[])
 
     connector::client< connector::TCP > tcp_sender( port, ip );
     connector::client< connector::UDP > udp_sender( port, ip );
-    
+
     if ( udp_test ) udp_sender.init();
     else if ( tcp_test) tcp_sender.init();
         

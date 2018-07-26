@@ -1,3 +1,16 @@
+#include <iostream>
+#include <iomanip> 
+#include <string>
+#include <vector>
+#include <queue>
+#include <fstream>
+#include <thread>
+#include <atomic>
+#include <functional>
+#include <mutex>              // std::mutex, std::unique_lock
+#include <condition_variable> // std::condition_variable
+#include <boost/program_options.hpp> //Nice argparser
+
 #ifndef YOLODLL_API
 #define YOLODLL_API
 
