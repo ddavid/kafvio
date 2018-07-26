@@ -9,6 +9,8 @@
 #include "opencv2/highgui/highgui_c.h"  // C
 #include "opencv2/imgproc/imgproc_c.h"  // C
 
+#include "detector-wrapper.hpp"
+
 #include "object.h" // municHMotorsport Object
 
 //OpenCV "Utils"
