@@ -37,6 +37,9 @@ int main(int argc, char *argv[])
   double            distance_threshold;
   long              frame_counter = 0;
 
+  double image_width  = std::get<0>(image_size);
+  double image_height = std::get<1>(image_size);
+
   Distance_Strategy distance_strategy;
 
   po::options_description desc("Allowed options");
@@ -94,7 +97,7 @@ int main(int argc, char *argv[])
   cv::Mat map1, map2, identity_mtx;
   cv::setIdentity(identity_mtx);
 
-  cv::Size imageSize( IMAGE_HEIGHT, IMAGE_WIDTH );
+  cv::Size imageSize( image_height, iamge_width );
   // Get New Camera Matrix
   // (Old camera matrix, distortion coefficients, img_size, what to do with empty pixels, new_img_size, valid_pixels_roi, keep_center_principal_point)
   cv::Mat new_cam_mtx = cv::getOptimalNewCameraMatrix(cam_mtx, dist_mtx, imageSize, 1, imageSize, 0, true);

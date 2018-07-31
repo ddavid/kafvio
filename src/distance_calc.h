@@ -23,13 +23,9 @@ struct intrinsic_camera_parameters {
   const double sensor_height;
   const double focal_length;
 
-  intrinsic_camera_parameters() {
-    sensor_width  = 6182.4;
-    sensor_height = 4953.6;
-    focal_length  = 4210.0;
-    h_AOV         = 1.3158683;
-    v_AOV         = 1.1088353;
-  }
+  intrinsic_camera_parameters()
+  : sensor_width(6182.4), sensor_height(4953.6), focal_length(4210.0), h_AOV(1.3158683), v_AOV(1.1088353)
+  {}
 };
 
 // Cone measurements in μm
@@ -37,20 +33,18 @@ struct large_cone {
   const double width;
   const double height;
 
-  large_cone() {
-    width  = 285000.0;
-    height = 505000.0;
-  }
+  large_cone()
+  : width(285000.0), height(505000.0)
+  {}
 };
 
 struct small_cone {
   const double width;
   const double height;
 
-  small_cone() {
-    width  = 228000.0;
-    height = 325000.0;
-  }
+  small_cone()
+  : width(228000.0), height(325000.0)
+  {}
 };
 
 // ( image_width, image_size )
@@ -60,7 +54,10 @@ void distance_estimation ( bbox_t & bbox, Distance_Strategy distance_strategy )
 {
   intrinsic_camera_parameters intrinsics = intrinsic_camera_parameters();
   double perpendicular_distance;
-  const double cone_width, cone_height, image_width, image_height;
+  double cone_width, cone_height;
+  const double image_width  = std::get<0>(image_size);
+  const double image_height = std::get<1>(image_size);
+
 
   // Change real world dimensions for large cones
   if (bbox.obj_id > 2) {
@@ -74,18 +71,15 @@ void distance_estimation ( bbox_t & bbox, Distance_Strategy distance_strategy )
     cone_height = cone_dims.height;
   }
 
-  image_width  = std::get<0>(image_size);
-  image_height = std::get<1>(image_size);
-
   // Angles in Fahrzeugmodell-Koordinaten
-  bbox.angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- h_AOV) + ( h_AOV / 2);
+  bbox.angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- intrinsics.h_AOV) + ( intrinsics.h_AOV / 2);
 
   switch ( distance_strategy ) {
     case CONE_HEIGHT:
-      perpendicular_distance = ((cone_height * focal_length) / intrinsics.sensor_height) / 1000000.0;
+      perpendicular_distance = ((cone_height * intrinsics.focal_length) / intrinsics.sensor_height) / 1000000.0;
       break;
     case CONE_WIDTH:
-      perpendicular_distance = ((cone_width  * focal_length) / intrinsics.sensor_width) / 1000000.0;
+      perpendicular_distance = ((cone_width  * intrinsics.focal_length) / intrinsics.sensor_width) / 1000000.0;
       break;
   }
 
@@ -96,7 +90,9 @@ double debug_distance_estimation ( bbox_t & bbox, Distance_Strategy distance_str
 {
   intrinsic_camera_parameters intrinsics = intrinsic_camera_parameters();
   double perpendicular_distance, distance;
-  const double cone_width, cone_height, image_width, image_height, angle;
+  double cone_width, cone_height;
+  const double image_width  = std::get<0>(image_size);
+  const double image_height = std::get<1>(image_size);
 
   // Change real world dimensions for large cones
   if (bbox.obj_id > 2) {
@@ -110,18 +106,15 @@ double debug_distance_estimation ( bbox_t & bbox, Distance_Strategy distance_str
     cone_height = cone_dims.height;
   }
 
-  image_width  = std::get<0>(image_size);
-  image_height = std::get<1>(image_size);
-
   // Angles in Fahrzeugmodell-Koordinaten
-  angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- h_AOV) + ( h_AOV / 2);
+  const double angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- intrinsics.h_AOV) + ( intrinsics.h_AOV / 2);
 
   switch ( distance_strategy ) {
     case CONE_HEIGHT:
-      perpendicular_distance = ((cone_height * focal_length) / intrinsics.sensor_height) / 1000000.0;
+      perpendicular_distance = ((cone_height * intrinsics.focal_length) / intrinsics.sensor_height) / 1000000.0;
       break;
     case CONE_WIDTH:
-      perpendicular_distance = ((cone_width  * focal_length) / intrinsics.sensor_width) / 1000000.0;
+      perpendicular_distance = ((cone_width  * intrinsics.focal_length) / intrinsics.sensor_width) / 1000000.0;
       break;
   }
 
