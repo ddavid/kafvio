@@ -5,6 +5,7 @@
 *.png
 *.so
 *.a
+.idea
 
 mnist/
 data/

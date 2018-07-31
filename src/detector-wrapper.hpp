@@ -20,7 +20,13 @@ struct bbox_t {
 	unsigned int obj_id;		// class of object - from range [0, classes-1]
 	unsigned int track_id;		// tracking id for video (0 - untracked, 1 - inf - tracked object)
 	unsigned int frames_counter;// counter of frames on which the object was detected
+	// object_t
+	double distance;
+	double angle;
+	double time_s;
+	int type;
 
+	object_t ( double distance, double angle, double time_s, int type )
 	//TODO Converting Constructor for object_t
 };
 
@@ -30,6 +36,8 @@ struct image_t {
 	int c;						// number of chanels (3 - for RGB)
 	float *data;				// pointer to the image data
 };
+
+enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1, CONE_AVERAGE = 2 };
 
 #include "object.h"
 
