@@ -19,10 +19,12 @@ cv::Scalar obj_id_to_color(int obj_id) {
   cv::Scalar yellow(0, 200, 200);
   cv::Scalar blue(200, 0, 0);
   cv::Scalar red(0, 0, 200);
+  cv::Scalar big_red(238, 130, 238); 
 
   if( obj_id == 0 ) { return yellow; }
   else if( obj_id == 1 ) { return blue; }
-  else return red;
+  else if( obj_id == 2 ) { return red; }
+  else return big_red;
 }
 
 class preview_boxes_t {
