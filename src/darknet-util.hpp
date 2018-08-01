@@ -7,6 +7,28 @@ namespace po = boost::program_options;
 
 std::chrono::steady_clock::time_point steady_clara_start;
 
+object_t bbox_into_object( const bbox_t & bbox, const double distance )
+{
+  object_t obj;
+    
+  obj.distance  = distance;
+  obj.angle     = get_bbox_angle( bbox );
+  obj.type      = bbox.obj_id;
+  
+  // Default initialize
+  obj.x_car     = 0;
+  obj.y_car     = 0;
+  obj.angle_yaw = 0;
+  obj.vx        = 0;
+  obj.vy        = 0;
+  obj.ax        = 0;
+  obj.ay        = 0;
+  obj.yaw_rate  = 0;
+  obj.steering_rad = 0;
+
+  return obj;
+}
+
 object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat, double distance_threshold = 20.0 )
 {
   //  Remove detections that clip boundaries of the screen
@@ -24,18 +46,17 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
   */
   std::vector<object_t> tmp_objects;
 
-  //
   std::chrono::steady_clock::time_point steady_clara_measure = std::chrono::steady_clock::now();
   std::chrono::duration<double> clara_delta = steady_clara_measure - steady_clara_start;
 
   for ( bbox_t& bbox : boxes )
   {
 
-    distance_estimation( bbox, strat );
+    const double distance = distance_estimation( bbox, strat );
 
-    if ( bbox.distance < distance_threshold )
+    if ( distance < distance_threshold )
     {
-      object_t temp(bbox);
+      object_t temp = bbox_into_object(bbox, distance);
       temp.time_s = clara_delta.count();
       tmp_objects.push_back(temp);
     }
@@ -103,19 +124,18 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
         //Height distance estimation
         object_list_t  height_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_HEIGHT);
         //Average distance estimation
-        object_list_t  avg_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_AVERAGE);
+        //object_list_t  avg_objects = bbox_into_object_list(result_vec, Distance_Strategy::CONE_AVERAGE);
 
         for (auto &i : result_vec) 
         {
             if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
-        std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
-                  << ", w = " << i.w << ", h = " << i.h
-                  << std::setprecision(3) << ", prob = " << i.prob
-                  << std::setprecision(6) << ", distance_width = " << width_objects.element[count].distance
-                  << ", distance_height = " << height_objects.element[count].distance
-                  << ", avg_height = " << avg_objects.element[count].distance
-
-                  << ", angle = " << height_objects.element[count].angle << '\n';
+            std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
+                      << ", w = " << i.w << ", h = " << i.h
+                      << std::setprecision(3) << ", prob = " << i.prob
+                      << std::setprecision(6) << ", distance_width = " << width_objects.element[count].distance
+                      << ", distance_height = " << height_objects.element[count].distance
+                      << ", angle = " << height_objects.element[count].angle
+                      << ", time_s = " << height_objects.element[count].time_s << '\n';
             count++;
     }     
 }

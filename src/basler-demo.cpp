@@ -29,8 +29,6 @@
 
 namespace po = boost::program_options;
 
-enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1, CONE_AVERAGE = 2 };
-
 const int IMAGE_HEIGHT = 1024;
 const int IMAGE_WIDTH  = 1280;
 
@@ -443,8 +441,9 @@ int main(int argc, char *argv[])
     steady_clara_start = std::chrono::steady_clock::now();
 
     auto obj_names = objects_names_from_file(names_file);
-        
-    std::string out_videofile = "/home/nvidia/Documents/github-repos/modi-scheduler/darknet-recording.avi";
+      
+    std::string out_videofile = "/home/fsd/Videos/darknet-recording.avi";
+    //std::string out_videofile = "/home/nvidia/Documents/github-repos/modi-scheduler/darknet-recording.avi";
 
     connector::client< connector::TCP > tcp_sender( port, ip );
     connector::client< connector::UDP > udp_sender( port, ip );
@@ -659,7 +658,7 @@ int main(int argc, char *argv[])
                         std::cout << "Detection FPS: " << current_det_fps << "\n";
                         std::cout << "Capture   FPS: " << current_cap_fps << "\n";
                         std::cout << "Tracking FPS: " << current_tracking_fps << "\n";
-                        //show_console_result(result_vec, obj_names);
+                        show_console_result(result_vec, obj_names);
                         // Make Results always be on top of Console
                         std::cout << "\033[2J";
                         std::cout << "\033[1;1H";

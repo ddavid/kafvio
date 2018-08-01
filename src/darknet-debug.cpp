@@ -51,17 +51,17 @@ int main(int argc, char *argv[])
   ("image_file", po::value<std::string>(&filename), "Single Image file to run detection on")
   ("list_file", po::value<std::string>(&filename), "List file of image paths to run detections on")
   ("video_file", po::value<std::string>(&filename), "Single Video file to run detection on")
-  ("basler", po::value<int>(&pylon)->default_value(1), "Run demo with Basler Cam if set to 1")
+  ("basler", po::value<int>(&pylon)->default_value(0), "Run demo with Basler Cam if set to 1")
   ("pfs_file", po::value<std::string>(&pfs_file_name)->default_value("../cam_config_120fps_auto-balance.pfs"), "Camera Config File to load.")
   ("record", po::value<int>(&record_stream)->default_value(0), "Record openCV stream to .avi file")
   ("live_demo", po::value<int>(&live_demo)->default_value(0), "Show openCV stream")
   ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
   ("undistort", po::value<int>(&undistort)->default_value(0), "Set undistortion flag")
-  ("tracking", po::value<int>(&tracking)->default_value(1), "Set tracking flag")
+  ("tracking", po::value<int>(&tracking)->default_value(0), "Set tracking flag")
   ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
   ("port", po::value<int>(&port)->default_value(4401), "Set port to send objects to")
   ("ip", po::value<std::string>(&ip)->default_value("127.0.0.1"), "Set ip to send objects to, default is localhost via FSD::Connector")
-  ("udp_test", po::value<int>(&udp_test)->default_value(1), "If true, sends objects to specified ip:port")
+  ("udp_test", po::value<int>(&udp_test)->default_value(0), "If true, sends objects to specified ip:port")
   ("tcp_test", po::value<int>(&tcp_test)->default_value(0), "If true, sends objects to specified ip:port")
   ("distance_strategy", po::value<int>(&strategy_index)->default_value(0), "Sets the distance estimation strategy to be used.\n0 := Height\n1 := Width.\n2 := Average")
   ("distance_threshold", po::value<double>(&distance_threshold)->default_value(20.0), "Sets the distance threshold value over which no detections are forwarded")
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
   cv::Mat map1, map2, identity_mtx;
   cv::setIdentity(identity_mtx);
 
-  cv::Size imageSize( image_height, iamge_width );
+  cv::Size imageSize( image_height, image_width );
   // Get New Camera Matrix
   // (Old camera matrix, distortion coefficients, img_size, what to do with empty pixels, new_img_size, valid_pixels_roi, keep_center_principal_point)
   cv::Mat new_cam_mtx = cv::getOptimalNewCameraMatrix(cam_mtx, dist_mtx, imageSize, 1, imageSize, 0, true);
@@ -234,6 +234,8 @@ int main(int argc, char *argv[])
             {
               result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required                 
               extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
+              if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
+              else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
             }
             // add old tracked objects
             for (auto &i : old_result_vec) 
@@ -315,13 +317,16 @@ int main(int argc, char *argv[])
               result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
               cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
             }
-
-            if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
-            else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
+            if ( tracking )
+            {
+              if      ( udp_test ) send_objects_udp( result_vec, udp_sender, distance_strategy, distance_threshold );
+              else if ( tcp_test ) send_objects_tcp( result_vec, tcp_sender, distance_strategy, distance_threshold );
+            }
 
             std::cout << "Detection FPS: " << current_det_fps << "\n";
             std::cout << "Capture   FPS: " << current_cap_fps << "\n";
             std::cout << "Tracking FPS: " << current_tracking_fps << "\n";
+            show_console_result_distances( result_vec, obj_names );
             //show_console_result(result_vec, obj_names);
             // Make Results always be on top of Console
             std::cout << "\033[2J";

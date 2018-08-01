@@ -20,14 +20,6 @@ struct bbox_t {
 	unsigned int obj_id;		// class of object - from range [0, classes-1]
 	unsigned int track_id;		// tracking id for video (0 - untracked, 1 - inf - tracked object)
 	unsigned int frames_counter;// counter of frames on which the object was detected
-	// object_t
-	double distance;
-	double angle;
-	double time_s;
-	int type;
-
-	object_t ( double distance, double angle, double time_s, int type )
-	//TODO Converting Constructor for object_t
 };
 
 struct image_t {

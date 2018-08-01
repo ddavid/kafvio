@@ -24,7 +24,7 @@ struct intrinsic_camera_parameters {
   const double focal_length;
 
   intrinsic_camera_parameters()
-  : sensor_width(6182.4), sensor_height(4953.6), focal_length(4210.0), h_AOV(1.3158683), v_AOV(1.1088353)
+  : h_AOV(1.3158683), v_AOV(1.1088353), sensor_width(6182.4), sensor_height(4953.6), focal_length(4210.0) 
   {}
 };
 
@@ -50,14 +50,27 @@ struct small_cone {
 // ( image_width, image_size )
 std::pair<const double, const double> image_size = {1280.0, 1048.0};
 
-void distance_estimation ( bbox_t & bbox, Distance_Strategy distance_strategy )
+double get_bbox_angle ( const bbox_t & bbox )
 {
+  intrinsic_camera_parameters intrinsics = intrinsic_camera_parameters();
+  const double image_width = std::get<0>(image_size);
+
+  const double angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- intrinsics.h_AOV) + ( intrinsics.h_AOV / 2);
+  
+  return angle;
+}
+
+double distance_estimation ( const bbox_t & bbox, Distance_Strategy distance_strategy )
+{
+  // Conversion from pixel height to height on sensor missing
   intrinsic_camera_parameters intrinsics = intrinsic_camera_parameters();
   double perpendicular_distance;
   double cone_width, cone_height;
   const double image_width  = std::get<0>(image_size);
   const double image_height = std::get<1>(image_size);
-
+  
+  const double width_on_sensor  = ( bbox.w / image_width )  * intrinsics.sensor_width;
+  const double height_on_sensor = ( bbox.h / image_height ) * intrinsics.sensor_height; 
 
   // Change real world dimensions for large cones
   if (bbox.obj_id > 2) {
@@ -72,18 +85,19 @@ void distance_estimation ( bbox_t & bbox, Distance_Strategy distance_strategy )
   }
 
   // Angles in Fahrzeugmodell-Koordinaten
-  bbox.angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- intrinsics.h_AOV) + ( intrinsics.h_AOV / 2);
+  const double angle = (( bbox.x + bbox.w/2 ) / image_width ) * (- intrinsics.h_AOV) + ( intrinsics.h_AOV / 2);
 
   switch ( distance_strategy ) {
     case CONE_HEIGHT:
-      perpendicular_distance = ((cone_height * intrinsics.focal_length) / intrinsics.sensor_height) / 1000000.0;
+      perpendicular_distance = ((cone_height * intrinsics.focal_length) / height_on_sensor) / 1000000.0;
       break;
     case CONE_WIDTH:
-      perpendicular_distance = ((cone_width  * intrinsics.focal_length) / intrinsics.sensor_width) / 1000000.0;
+      perpendicular_distance = ((cone_width  * intrinsics.focal_length) / width_on_sensor) / 1000000.0;
       break;
   }
 
-  bbox.distance = perpendicular_distance / std::cos( bbox.angle );
+  const double distance = perpendicular_distance / std::cos( angle );
+  return distance;
 }
 
 double debug_distance_estimation ( bbox_t & bbox, Distance_Strategy distance_strategy )

@@ -33,7 +33,7 @@
  *    * `double`: angle to the cone in driving direction in [rad]
  *    * `double`: elapsed time from the start of the simulation in [s]
  */
-struct object_t {
+typedef struct {
     double x_car;
     double y_car;
     double angle_yaw;
@@ -47,21 +47,7 @@ struct object_t {
     double time_s;
     double steering_rad;
     int type;
-
-    object_t( const bbox_t & bbox )
-    : distance(bbox.distance), angle(bbox.angle), time_s(bbox.time_s), type(bbox.type)
-    {
-      x_car = 0;
-      y_car = 0;
-      angle_yaw = 0;
-      vx    = 0;
-      vy    = 0;
-      ax    = 0;
-      ay    = 0;
-      yaw_rate = 0;
-      steering_rad = 0;
-    }
-};
+} object_t;
 
 /*
  * \brief The object_list_t struct contains object_t structs within itself
