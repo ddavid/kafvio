@@ -1,3 +1,35 @@
+*.o
+*.dSYM
+*.csv
+*.out
+*.png
+*.so
+*.a
+.idea
+
+mnist/
+data/
+caffe/
+grasp/
+images/
+opencv/
+convnet/
+decaf/
+submission/
+cfg/
+darknet
+.fuse*
+validation/
+partial_weights/
+cone-sim_augmented/
+augmented_training/
+old_validation/
+training_v2/
+valid_kit/
+training_first-basler-outdoor/
+basler-tamron_augmented_only-red/
+logs/
+
 # Prerequisites
 *.d
 
@@ -30,3 +62,33 @@
 *.exe
 *.out
 *.app
+
+# OS Generated #
+.DS_Store*
+thumbs.db
+Icon?
+Thumbs.db
+*.swp
+
+# Makefile fsd-train Jetson #
+# Makefile
+libs/
+
+# CMake #
+cmake-build-debug/
+build/
+*.weights
+*.mp4
+*.avi
+*.csv
+*.log
+
+chart*
+jesewang-straight/
+lucas_demo/
+predictions/
+jesewang-oval/
+evaluations/
+
+chart.jpg
+eval_new.py
