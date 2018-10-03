@@ -7,9 +7,13 @@ Final Project for the Seminar "Advanced Software Development with Modern C++" at
 ![System Diagram](https://imgur.com/hLfMSFH.png)
 
 ### Tracking
+
 ![](http://)
 
 #### Kalman Filter (Linear Quadratic Estimation)
+
+![Kalman Filter Diagram](https://imgur.com/FogSISI.png)
+
 ##### Prediction
 ##### Update
 
@@ -18,6 +22,7 @@ Final Project for the Seminar "Advanced Software Development with Modern C++" at
 
 
 **Pinhole Camera Model**
+
 ![Pinhole Camera Model](https://imgur.com/fVRhJQQ.png)
 
 **Intrinsic Camera Parameters**
