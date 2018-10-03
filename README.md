@@ -33,3 +33,11 @@ In the form (<strong>R</strong>, <strong>t</strong>) above
 ![Height Distance Estimation](/home/david/Documents/Projects/MM/Judging/images/height-distance-estimation_comp.png)
 #### Object Odometry
 ![Object Velocities](/home/david/Documents/Uni/modern-cpp/final-project/images/object-velocities.png)
+
+Since our assumption is that the camera will only move on a straight line on the xy-plane, we can directly infer its velocity from the objects' translation. Otherwise we would have to take the longitudinal and rotational components of the velocity into consideration.
+
+obj_vel := &Delta;pos &div; &Delta;t
+
+and
+obj_vel = cam_vel
+![Object Velocity](http://mathurl.com/ya2ds8p5)
