@@ -81,14 +81,16 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
     int const colors[6][3] = { { 1,0,1 },{ 0,0,1 },{ 0,1,1 },{ 0,1,0 },{ 1,1,0 },{ 1,0,0 } };
 
     for (auto &i : result_vec) {
+
+        double obj_distance = distance_estimation(i, Distance_Strategy::CONE_HEIGHT);
         cv::Scalar color = obj_id_to_color(i.obj_id);
         cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 2);
 
         if (obj_names.size() > i.obj_id) {
           std::string obj_caption;
-          obj_caption = std::to_string(distance_estimation(i, Distance_Strategy::CONE_HEIGHT) ) + " , angle: " + std::to_string(get_bbox_angle(i) );
+          obj_caption = std::to_string(obj_distance) + " , angle: " + std::to_string(get_bbox_angle(i) );
 
-            if (i.track_id > 0) std::to_string(height_objects.element[index].distance) += " - " + std::to_string(i.track_id);
+            if (i.track_id > 0) std::to_string(obj_distance) += " - " + std::to_string(i.track_id);
             cv::Size const text_size = getTextSize(obj_caption, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, 0);
             int const max_width = (text_size.width > i.w + 2) ? text_size.width : (i.w + 2);
 
