@@ -32,7 +32,7 @@ find_package(OpenGL REQUIRED)
 find_package(X11 REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(Freetype REQUIRED)
-#find_package(Eigen3 REQUIRED NO_MODULE)
+#find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
@@ -47,12 +47,10 @@ include_directories(
     ${PYLON_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIR}
     ${OpenGL_INLCUDE_DIR}
-    eigen3
+    #${Eigen3_INCLUDE_DIR}
+    #eigen3
     src
     src/wrapper
-    nvxio/include
-    nvx/tracking
-    nvx
 )
 
 link_directories(
@@ -68,18 +66,23 @@ add_executable(darknet-debug
     src/wrapper/darknet-debug.cpp
     src/wrapper/detector-wrapper.hpp
     src/wrapper/object.h
-    src/kalman/kalman_filter.cpp src/kalman/kalman_filter.h)
+    #src/kalman/kalman_filter.cpp
+    #src/kalman/kalman_filter.h
+    )
 
 target_link_libraries(darknet-debug
     ${OpenCV_LIBS}
-    ${PYLON_LIBRARIES} 
+    #${PYLON_LIBRARIES}
     ${CUDNN_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}
-    eigen3
+    #eigen3
     darknet
     cuda 
     cudart 
     cublas 
     curand
 )
+
+# Tests for Kalman Filter
+add_subdirectory (tests)

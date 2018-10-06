@@ -79,6 +79,7 @@ public:
     post_process_cov = pre_process_cov - gain * meas_mtx * pre_process_cov;
   };
 
+public:
   Eigen::Matrix<double, StateDim, 1>          post_state;
 
 private:
