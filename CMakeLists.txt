@@ -32,6 +32,7 @@ find_package(OpenGL REQUIRED)
 find_package(X11 REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(Freetype REQUIRED)
+#find_package(Eigen3 REQUIRED NO_MODULE)
 
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
@@ -75,6 +76,7 @@ target_link_libraries(darknet-debug
     ${CUDNN_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}
+    eigen3
     darknet
     cuda 
     cudart 
