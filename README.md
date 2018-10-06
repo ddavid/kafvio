@@ -22,7 +22,7 @@ Final Project for the Seminar "Advanced Software Development with Modern C++" at
 ##### Update
 1. Compute residual between prediction and measurement
 2. Compute scaling factor based on accuracy of both prediction and measurement
-3. Set state according according to scaling factor
+3. Set state according to scaling factor
 4. Update belief in the state based on measurement certainty
 
 ![Update Equations](http://mathurl.com/y7cehhk4.png)
