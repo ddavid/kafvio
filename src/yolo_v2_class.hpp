@@ -141,6 +141,7 @@ private:
 		return out;
 	}
 };
+/*
 // Tracker
 #include <opencv2/cudaoptflow.hpp>
 #include <opencv2/cudaimgproc.hpp>
@@ -315,7 +316,7 @@ public:
 	}
 
 };
-
+*/
 // CPU Tracking Version
 
 //#include <opencv2/optflow.hpp>
