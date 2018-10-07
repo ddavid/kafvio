@@ -17,10 +17,8 @@ void drawCross(cv::Mat &img, cv::Point center, cv::Scalar color);
 
 // global variables ///////////////////////////////////////////////////////////////////////////////
 const cv::Scalar SCALAR_WHITE = cv::Scalar(255.0, 255.0, 255.0);
-const cv::Scalar SCALAR_BLACK = cv::Scalar(0.0, 0.0, 0.0);
 const cv::Scalar SCALAR_BLUE = cv::Scalar(255.0, 0.0, 0.0);
 const cv::Scalar SCALAR_GREEN = cv::Scalar(0.0, 200.0, 0.0);
-const cv::Scalar SCALAR_RED = cv::Scalar(0.0, 0.0, 255.0);
 
 cv::Point ptActualMousePosition(0, 0);
 
@@ -30,36 +28,19 @@ int main(void) {
     const int state_dim = 4;
     const int meas_dim  = 2;
     const int ctl_dim   = 0;
-    //cv::KalmanFilter kalmanFilter(4, 2, 0);                             // instantiate Kalman Filter
-    //Kalman_Filter<state_dim, meas_dim, ctl_dim> kafi;
 
     Eigen::Matrix<float, state_dim, state_dim> transition_matrix;
     transition_matrix << 1, 0, 1, 0,
                          0, 1, 0, 1,
                          0, 0, 1, 0,
                          0, 0, 0, 1;
-    /*float fltTransitionMatrixValues[4][4] = { { 1, 0, 1, 0 },           // declare an array of floats to feed into Kalman Filter Transition Matrix, also known as State Transition Model
-                                              { 0, 1, 0, 1 },
-                                              { 0, 0, 1, 0 },
-                                              { 0, 0, 0, 1 } };
-    */
-    //kalmanFilter.transitionMatrix = cv::Mat(4, 4, CV_32F, fltTransitionMatrixValues);       // set Transition Matrix
-    //kafi.set_transition_mtx( transition_matrix );
 
-    /*float fltMeasurementMatrixValues[2][4] = { { 1, 0, 0, 0 },          // declare an array of floats to feed into Kalman Filter Measurement Matrix, also known as Measurement Model
-                                               { 0, 1, 0, 0 } };
-    */
     Eigen::Matrix<float, meas_dim, state_dim> measurement_matrix;
     measurement_matrix << 1, 0, 0, 0,
                           0, 1, 0, 0;
-    //kalmanFilter.measurementMatrix = cv::Mat(2, 4, CV_32F, fltMeasurementMatrixValues);     // set Measurement Matrix
-    //kafi.set_meas_mtx( measurement_matrix );
     
     cpppc::Kalman_Filter<state_dim, meas_dim, ctl_dim, float> kafi(transition_matrix, measurement_matrix);
 
-    //cv::setIdentity(kalmanFilter.processNoiseCov, cv::Scalar::all(0.0001));           // default is 1, for smoothing try 0.0001
-    //cv::setIdentity(kalmanFilter.measurementNoiseCov, cv::Scalar::all(10));         // default is 1, for smoothing try 10
-    //cv::setIdentity(kalmanFilter.errorCovPost, cv::Scalar::all(0.1));               // default is 0, for smoothing try 0.1
     kafi.set_process_noise(Eigen::Matrix<float, state_dim, state_dim>::Identity() * 0.0001);
     kafi.set_measurement_noise(Eigen::Matrix<float, meas_dim, meas_dim>::Identity() * 10);
     kafi.set_process_cov(Eigen::Matrix<float, state_dim, state_dim>::Identity() * 0.1);
@@ -79,8 +60,12 @@ int main(void) {
 
         cv::Mat matPredicted;
         cv::eigen2cv( kafi.pre_state, matPredicted );
-
-        //cv::Mat matPredicted = kalmanFilter.predict();
+        std::cout << "Kafi predicted pos: "
+                << "( " << kafi.pre_state(0,0)
+                << ", " << kafi.pre_state(1,0)
+                << ", " << kafi.pre_state(2,0)
+                << ", " << kafi.pre_state(3,0)
+                << " )" << '\n';
 
         cv::Point ptPredicted((int)matPredicted.at<float>(0), (int)matPredicted.at<float>(1));
 
@@ -94,16 +79,16 @@ int main(void) {
         cv::cv2eigen( matActualMousePosition, actualMousePosition);
 
         cv::Mat matCorrected;
-        kafi.update( actualMousePosition );
+        kafi.update( actualMousePosition );   // update() updates the predicted state from the measurement
 
         std::cout << "Kafi updated pos: "
-                  << "( " << kafi.pre_state(0,0)
-                  << ", " << kafi.pre_state(1,0)
+                  << "( " << kafi.post_state(0,0)
+                  << ", " << kafi.post_state(1,0)
+                  << ", " << kafi.post_state(2,0)
+                  << ", " << kafi.post_state(3,0)
                   << " )" << '\n';
 
-        cv::eigen2cv( kafi.pre_state, matCorrected );
-
-        //cv::Mat matCorrected = kalmanFilter.correct(matActualMousePosition);        // function correct() updates the predicted state from the measurement
+        cv::eigen2cv( kafi.post_state, matCorrected );
 
         cv::Point ptCorrected((int)matCorrected.at<float>(0), (int)matCorrected.at<float>(1));
 
@@ -111,7 +96,7 @@ int main(void) {
         actualMousePositions.push_back(ptActualMousePosition);
         correctedMousePositions.push_back(ptCorrected);
 
-            // predicted, actual, and corrected are all now calculated, time to draw stuff
+        // predicted, actual, and corrected are all now calculated, time to draw stuff
 
         drawCross(imgBlank, ptPredicted, SCALAR_BLUE);                      // draw a cross at the most recent predicted, actual, and corrected positions
         drawCross(imgBlank, ptActualMousePosition, SCALAR_WHITE);
@@ -142,7 +127,6 @@ int main(void) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void mouseMoveCallback(int event, int x, int y, int flags, void* userData) {
     if (event == CV_EVENT_MOUSEMOVE) {
-        //std::cout << "mouse move at: " << x << ", " << y << "\n";
 
         ptActualMousePosition.x = x;
         ptActualMousePosition.y = y;

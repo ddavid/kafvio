@@ -91,15 +91,13 @@ namespace cpppc
       // Update belief in the state based on measurement certainty
       // P = (I - KH)P'
       post_process_cov = pre_process_cov - gain * meas_mtx * pre_process_cov;
-
-      pre_state = post_state;
     };
 
   public:
     Eigen::Matrix<T, StateDim, 1>           pre_state;
+    Eigen::Matrix<T, StateDim, 1>           post_state;
 
   private:
-    Eigen::Matrix<T, StateDim, 1>           post_state;
     Eigen::Matrix<T, StateDim, StateDim>    transition_mtx;
     Eigen::Matrix<T, StateDim, StateDim>    pre_process_cov;
     Eigen::Matrix<T, StateDim, StateDim>    post_process_cov;
