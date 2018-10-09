@@ -30,7 +30,7 @@ struct image_t {
 	float *data;				// pointer to the image data
 };
 
-#include "object.h"
+//#include "object.h"
 
 #ifdef __cplusplus
 #include <memory>
@@ -62,7 +62,7 @@ public:
 	YOLODLL_API int get_net_height() const;
 
 	YOLODLL_API std::vector<bbox_t> tracking_id(std::vector<bbox_t> cur_bbox_vec, bool const change_history = true, 
-												int const frames_story = 10, int const max_dist = 150);
+												int const frames_story = 10, int const max_dist = 30);
 
 	std::vector<bbox_t> detect_resized(image_t img, int init_w, int init_h, float thresh = 0.2, bool use_mean = false)
 	{

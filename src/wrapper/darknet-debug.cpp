@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
   auto obj_names = objects_names_from_file(names_file);
 
-  std::string out_videofile = "/home/nvidia/Documents/github-repos/modi-scheduler/darknet-recording.avi";
+  std::string out_videofile = "/home/david/Videos/darknet-recording.avi";
 
   while (true) 
   {   
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
       cv::Size const frame_size = cur_frame.size();
       cv::VideoWriter output_video;
       // Stream Recording
-      if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), std::max(35, video_fps), frame_size, true);
+      if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), std::min(35, video_fps), frame_size, true);
 
         while (!cur_frame.empty()) 
         {
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
               }
             });
           }
-          //while (!consumed);    // sync detection
+          while (!consumed);    // sync detection
           if (!cur_frame.empty()) 
           {
             steady_end = std::chrono::steady_clock::now();
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
               large_preview.draw(cur_frame);
 
               cv::imshow("window name", cur_frame);
-              int key = cv::waitKey(1);   // 3 or 16ms
+              int key = cv::waitKey(0);   // 3 or 16ms
 
               if (key == 'f') show_small_boxes = !show_small_boxes;
               if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
@@ -278,14 +278,14 @@ int main(int argc, char *argv[])
             result_vec = detector.detect(mat_img);
 
             //show_console_result_distances( result_vec, obj_names );
-            //show_console_result_CLARA_test( result_vec, obj_names );
+            show_console_result_CLARA_test( result_vec, obj_names );
 
             if( valid_test ) 
             {
               frame_counter++;
               std::ostringstream stringStream;
               stringStream << std::setfill('0');
-              stringStream << "valid_frames/jo6_";
+              stringStream << "cpppc-demo/accell-demo_";
               stringStream << std::setw(8) << std::to_string(frame_counter);
               stringStream << ".jpg";
               std::string valid_filename = stringStream.str();

@@ -29,6 +29,7 @@ valid_kit/
 training_first-basler-outdoor/
 basler-tamron_augmented_only-red/
 logs/
+fsg-models/
 
 # Prerequisites
 *.d
