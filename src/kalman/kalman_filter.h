@@ -15,10 +15,18 @@ namespace cpppc
 
   public:
     Kalman_Filter() :
-        pre_state(pre_state.Zero()), post_state(post_state.Zero()), transition_mtx(transition_mtx.Identity()),
-        ctl_mtx(ctl_mtx.Zero()), pre_process_cov(pre_process_cov.Zero()), post_process_cov(post_process_cov.Zero()),
-        process_noise(process_noise.Identity()), meas_mtx(meas_mtx.Zero()), meas_noise(meas_noise.Zero()),
-        gain(gain.Zero()), residual(residual.Zero()) {};
+          pre_state(pre_state.Zero())
+        , post_state(post_state.Zero())
+        , transition_mtx(transition_mtx.Identity())
+        , pre_process_cov(pre_process_cov.Zero())
+        , post_process_cov(post_process_cov.Zero())
+        , process_noise(process_noise.Identity())
+        , ctl_mtx(ctl_mtx.Zero())
+        , meas_mtx(meas_mtx.Zero())
+        , meas_noise(meas_noise.Zero())
+        , gain(gain.Zero())
+        , residual(residual.Zero())
+        {};
 
     Kalman_Filter(const Eigen::Matrix<T, StateDim, StateDim> transition_matrix
                 , const Eigen::Matrix<T, MeasDim, StateDim> measurement_matrix  = Eigen::Matrix<T, MeasDim, StateDim>::Zero()

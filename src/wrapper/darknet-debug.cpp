@@ -219,8 +219,9 @@ int main(int argc, char *argv[])
             {
               large_preview.draw(cur_frame);
 
-              cv::imshow("window name", cur_frame);
-              int key = cv::waitKey(0);   // 3 or 16ms
+              cv::namedWindow("CPPPC Demo", cv::WINDOW_NORMAL);
+              cv::imshow("CPPPC Demo", cur_frame);
+              int key = cv::waitKey(1);   // 3 or 16ms
 
               if (key == 'f') show_small_boxes = !show_small_boxes;
               if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
