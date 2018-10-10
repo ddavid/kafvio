@@ -8,8 +8,6 @@ Final Project for the Seminar "Advanced Software Development with Modern C++" at
 
 ### Tracking
 
-![](http://)
-
 #### Kalman Filter (Linear Quadratic Estimation)
 
 ![Kalman Filter Diagram](https://imgur.com/FogSISI.png)
@@ -26,6 +24,15 @@ Final Project for the Seminar "Advanced Software Development with Modern C++" at
 4. Update belief in the state based on measurement certainty
 
 ![Update Equations](http://mathurl.com/y7cehhk4.png)
+
+
+#### Bounding Box Tracking
+
+![State, Measurement and Transition Matrix Bbox](http://mathurl.com/yavbfpcj.png)
+
+#### Velocity Estimation
+
+![State, Measurement and Transition Matrix](http://mathurl.com/y7ldqtut.png)
 
 ### Visual Odometry
 ![Visual Odometry Subsystem Diagram](https://imgur.com/fvjIRr4.png)
