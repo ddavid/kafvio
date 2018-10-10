@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     try 
     {
       preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
-      bool show_small_boxes = false;
+      bool show_small_boxes = true;
 
       std::string const file_ext = filename.substr(filename.find_last_of(".") + 1);
       std::string const protocol = filename.substr(0, 7);

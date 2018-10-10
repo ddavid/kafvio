@@ -62,6 +62,11 @@ namespace cpppc {
      */
     void update_bboxes( const std::vector<bbox_t> bbox_vec, double time_step );
 
+    void update_time_step(double time_step)
+    {
+      _velocity_kafi.transition_matrix(0, 1) = static_cast<T>(time_step);
+    }
+
   private:
 
     cpppc::Kalman_Filter<StateDim, MeasDim, CtlDim, value_t> _velocity_kafi;

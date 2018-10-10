@@ -133,7 +133,7 @@ void show_console_result_distances(std::vector<bbox_t> const result_vec, std::ve
         for (auto &i : result_vec) 
         {
             if (obj_names.size() > i.obj_id) std::cout << obj_names[i.obj_id] << " - ";
-            std::cout << "obj_id = " << i.obj_id << ",  x = " << i.x << ", y = " << i.y 
+            std::cout << "obj_id = " << i.obj_id << " track_id = " << i.track_id << ",  x = " << i.x << ", y = " << i.y
                       << ", w = " << i.w << ", h = " << i.h
                       << std::setprecision(3) << ", prob = " << i.prob
                       << std::setprecision(6) << ", distance_width = " << width_objects.element[count].distance

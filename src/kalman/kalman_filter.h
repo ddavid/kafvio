@@ -36,7 +36,8 @@ namespace cpppc
         , residual(residual.Zero())
         {};
 
-    Kalman_Filter(const Eigen::Matrix<value_t, StateDim, StateDim> transition_matrix
+    Kalman_Filter(
+          const Eigen::Matrix<value_t, StateDim, StateDim> transition_matrix
         , const Eigen::Matrix<value_t, MeasDim, StateDim> measurement_matrix  = Eigen::Matrix<value_t, MeasDim, StateDim>::Zero()
         , const Eigen::Matrix<value_t, StateDim, CtlDim> control_matrix       = Eigen::Matrix<value_t, StateDim, CtlDim>::Zero())
         : Kalman_Filter()
@@ -59,10 +60,11 @@ namespace cpppc
 
 
     // Normal KF, but possibility to extend to EKF
-
+    /*
     void set_transition_mtx( const Eigen::Matrix<value_t, StateDim, StateDim> transition_mtx ) {
       this->transition_mtx = transition_mtx;
     };
+    */
 
     void set_ctl_mtx( const Eigen::Matrix<value_t, StateDim, CtlDim> ctl_mtx ) {
       this->ctl_mtx = ctl_mtx;
@@ -124,9 +126,9 @@ namespace cpppc
   public:
     Eigen::Matrix<value_t, StateDim, 1>           pre_state;
     Eigen::Matrix<value_t, StateDim, 1>           post_state;
+    Eigen::Matrix<value_t, StateDim, StateDim>    transition_mtx;
 
   private:
-    Eigen::Matrix<value_t, StateDim, StateDim>    transition_mtx;
     Eigen::Matrix<value_t, StateDim, StateDim>    pre_process_cov;
     Eigen::Matrix<value_t, StateDim, StateDim>    post_process_cov;
     Eigen::Matrix<value_t, StateDim, StateDim>    process_noise;
