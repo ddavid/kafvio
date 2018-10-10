@@ -10,7 +10,12 @@
 namespace cpppc
 {
 
-  template<int StateDim, int MeasDim, int CtlDim, typename T>
+  template<
+      int StateDim
+    , int MeasDim
+    , int CtlDim
+    , typename T >
+
   class Kalman_Filter {
 
     typedef Kalman_Filter<StateDim, MeasDim, CtlDim, T>  self_t;

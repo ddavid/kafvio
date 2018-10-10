@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
           t_cap = std::thread([&](){cap >> cap_frame;});
           ++cur_time_extrapolate;
 
-          // swap result bouned-boxes and input-frame
+          // swap result bboxes and input-frame
           if(consumed)
           {
             std::unique_lock<std::mutex> lock(mtx);
