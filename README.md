@@ -4,7 +4,7 @@ Final Project for the Seminar "Advanced Software Development with Modern C++" at
 
 ## System Diagram
 
-![System Diagram](https://imgur.com/hLfMSFH.png)
+![System Diagram](https://imgur.com/7cJIvDD.png)
 
 ### Tracking
 
