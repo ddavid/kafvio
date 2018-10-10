@@ -13,13 +13,13 @@ namespace cpppc
   template<
       int StateDim
     , int MeasDim
-    , int CtlDim
-    , typename T >
+    , int CtlDim = 0
+    , typename T = double >
 
   class Kalman_Filter {
 
-    typedef Kalman_Filter<StateDim, MeasDim, CtlDim, T>  self_t;
-    typedef T                                            value_t;
+    using self_t  = Kalman_Filter<StateDim, MeasDim, CtlDim, T>;
+    using value_t = T;
 
   public:
     Kalman_Filter() :

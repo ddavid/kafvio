@@ -27,7 +27,7 @@ object_t bbox_into_object( const bbox_t & bbox, const double distance )
   return obj;
 }
 
-object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat, double distance_threshold = 20.0 )
+object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strategy strat, double distance_threshold = 30.0 )
 {
   //  Remove detections that clip boundaries of the screen
   /*boxes.erase(std::remove_if(

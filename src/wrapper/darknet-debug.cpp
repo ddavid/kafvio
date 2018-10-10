@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
   ("thresh", po::value<float>(&thresh)->default_value(0.20), "Set probability threshold for detection")
   ("valid_test", po::value<int>(&valid_test)->default_value(0), "Set to write detections from -list_file to image files in cwd")
   ("distance_strategy", po::value<int>(&strategy_index)->default_value(0), "Sets the distance estimation strategy to be used.\n0 := Height\n1 := Width.\n2 := Average")
-  ("distance_threshold", po::value<double>(&distance_threshold)->default_value(20.0), "Sets the distance threshold value over which no detections are forwarded")
+  ("distance_threshold", po::value<double>(&distance_threshold)->default_value(30.0), "Sets the distance threshold value over which no detections are forwarded")
 
   ;
 
@@ -81,9 +81,6 @@ int main(int argc, char *argv[])
 
     try 
     {
-      extrapolate_coords_t extrapolate_coords;
-      bool extrapolate_flag = false;
-      float cur_time_extrapolate = 0;
       preview_boxes_t large_preview(100, 150, false), small_preview(50, 50, true);
       bool show_small_boxes = false;
 
@@ -126,7 +123,6 @@ int main(int argc, char *argv[])
           }
           // Get new frame
           t_cap = std::thread([&](){cap >> cap_frame;});
-          ++cur_time_extrapolate;
 
           // swap result bboxes and input-frame
           if(consumed)
@@ -139,7 +135,6 @@ int main(int argc, char *argv[])
 
             // Only Detection
             result_vec = detector.tracking_id(result_vec);  // comment it - if track_id is not required
-            extrapolate_coords.new_result(result_vec, cur_time_extrapolate - 1);
 
             // add old tracked objects
             for (auto &i : old_result_vec) 
@@ -199,12 +194,6 @@ int main(int argc, char *argv[])
 
             large_preview.set(cur_frame, result_vec);
 
-            auto result_vec_draw = result_vec;
-            if (extrapolate_flag) {
-              result_vec_draw = extrapolate_coords.predict(cur_time_extrapolate);
-              cv::putText(cur_frame, "extrapolate", cv::Point2f(10, 40), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50, 50, 0), 2);
-            }
-
             std::cout << "Detection FPS: " << current_det_fps << "\n";
             std::cout << "Capture   FPS: " << current_cap_fps << "\n";
             show_console_result_distances( result_vec, obj_names );
@@ -213,7 +202,7 @@ int main(int argc, char *argv[])
             std::cout << "\033[2J";
             std::cout << "\033[1;1H";
 
-            if( live_demo || record_stream)  draw_boxes(cur_frame, result_vec_draw, obj_names, current_det_fps, current_cap_fps);
+            if( live_demo || record_stream)  draw_boxes(cur_frame, result_vec, obj_names, current_det_fps, current_cap_fps);
 
             if( live_demo )
             {
@@ -221,11 +210,9 @@ int main(int argc, char *argv[])
 
               cv::namedWindow("CPPPC Demo", cv::WINDOW_NORMAL);
               cv::imshow("CPPPC Demo", cur_frame);
-              int key = cv::waitKey(1);   // 3 or 16ms
-
+              int key = cv::waitKey(1);
               if (key == 'f') show_small_boxes = !show_small_boxes;
               if (key == 'p') while (true) if(cv::waitKey(100) == 'p') break;
-              if (key == 'e') extrapolate_flag = !extrapolate_flag;
               if (key == 27) { exit_flag = true; break; }
             }
 

@@ -68,7 +68,7 @@ add_executable(darknet-debug
     src/wrapper/object.h
     #src/kalman/kalman_filter.cpp
     #src/kalman/kalman_filter.h
-    src/kalman/kalman_tracker.h)
+    src/kalman/kalman_tracker.h src/odometry/odometry.h)
 
 target_link_libraries(darknet-debug
     ${OpenCV_LIBS}
