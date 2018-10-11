@@ -5,10 +5,12 @@
 #ifndef WRAPPER_ODOMETRY_H
 #define WRAPPER_ODOMETRY_H
 
-#include "../yolo_v2_class.hpp"
+#include "../wrapper/opencv_utils.hpp"
+#include "../wrapper/detector-wrapper.hpp"
 #include "../kalman/kalman_filter.h"
 #include <eigen3/Eigen/Dense>
 #include <wrapper/detector-wrapper.hpp>
+#include <cmath>
 
 // Distance Estimation
 #include "distance_calc.h"
@@ -59,7 +61,7 @@ namespace cpppc {
 
     // Accumulate difference in distances for bboxes matched by track_id
     // -> return Average distance / time_step
-    const double calc_velocity( const std::vector<bbox_t> cur_bbox_vec ) const
+    const double calc_velocity( const std::vector<bbox_t> cur_bbox_vec )
     {
       int counter         = 0;
       double acc_distance = 0;
@@ -88,8 +90,14 @@ namespace cpppc {
       avg_distance = ( acc_distance / counter);
       // Update previous sorted bbox vector with current sorted bbox vector
       this->update_bboxes(cur_bbox_vec);
+      std::cout << "Average velocity: " << avg_distance << std::endl;
       // Average velocity
-      return avg_distance / _time_step;
+      const double avg_velocity = avg_distance / _time_step;
+      if(!std::isnan(avg_velocity))
+      {
+        return avg_velocity;
+      }
+      else return 0.0;
     };
 
     /* Calculate velocity using KaFi
@@ -97,25 +105,33 @@ namespace cpppc {
      */
     const double calc_filtered_velocity(
           const std::vector<bbox_t> cur_bbox_vec
-        , const double accell
-        , double time_step )
+        , const double accell)
     {
       // Create measurement vector
-      Eigen::Matrix<value_t, MeasDim, 1> measurement;
-      measurement << calc_velocity(cur_bbox_vec) << accell;
+      Eigen::Matrix<value_t, 2, 1> measurement;
+      measurement << calc_velocity(cur_bbox_vec), static_cast<value_t >(accell);
 
-      this->_velocity_kafi.kafi.update(measurement);
+      this->_velocity_kafi.update(measurement);
+      std::cout << "Kafi pre state after update: " << this->_velocity_kafi.pre_state << std::endl;
+      std::cout << "Kafi post state after update: " << this->_velocity_kafi.post_state << std::endl;
+      const double filtered_velocity(this->_velocity_kafi.post_state(0, 0));
+
+      std::cout << "Filtered velocity: " << filtered_velocity << std::endl;
+      return filtered_velocity;
     };
 
     /* Replace old bbox vector
      * Adjust tansition_matrix if necessary and make prediction step
      */
-    void update_bboxes( const std::vector<bbox_t> bbox_vec, double time_step = 0)
+    void update_bboxes( const std::vector<bbox_t> bbox_vec, double time_step = 1)
     {
-      this->_velocity_kafi.kafi.predict();
+      this->_velocity_kafi.predict();
+      std::cout << "Predicted Odom Kafi: " << std::endl;
+      std::cout << "Kafi pre state after predict: " << _velocity_kafi.pre_state << std::endl;
+      std::cout << "Kafi post state after predict: " << _velocity_kafi.post_state << std::endl;
 
       // Update time_step
-      if(time_step != 0) {
+      if(time_step != 1) {
         this->_time_step = time_step;
         this->update_kafi_time_step(time_step);
       }
@@ -126,7 +142,7 @@ namespace cpppc {
     // Without updating time_step, we assume acceleration is given scaled to the size of the time_step
     void update_kafi_time_step(double time_step)
     {
-      _velocity_kafi.transition_matrix(0, 1) = static_cast<T>(time_step);
+      _velocity_kafi.transition_mtx(0, 1) = static_cast<T>(time_step);
     }
 
   private:

@@ -1,3 +1,6 @@
+#ifndef YOLO_CLASS_H
+#define YOLO_CLASS_H
+
 #pragma once
 #ifdef YOLODLL_EXPORTS
 #if defined(_MSC_VER)
@@ -12,6 +15,7 @@
 #define YOLODLL_API
 #endif
 #endif
+
 
 struct bbox_t {
 	unsigned int x, y, w, h;	  // (x,y) - top-left corner, (w, h) - width & height of bounded box
@@ -579,3 +583,4 @@ public:
 };
 //extern "C" {
 #endif	// __cplusplus
+#endif // YOLO_CLASS_H

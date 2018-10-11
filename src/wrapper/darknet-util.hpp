@@ -73,7 +73,7 @@ object_list_t  bbox_into_object_list( std::vector<bbox_t> boxes, Distance_Strate
 }
 
 // Put into opencv-utils after decoupling distance estimation and list creation
-void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, int current_det_fps = -1, int current_cap_fps = -1)
+void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names, double current_det_fps = -1, double current_cap_fps = -1)
 {
     //object_list_t height_objects = bbox_into_object_list( result_vec, Distance_Strategy::CONE_HEIGHT, distance_threshold);
 
@@ -103,10 +103,10 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
         }
         ++index;
     }
-    if (current_det_fps >= 0 && current_cap_fps >= 0) {
+    //if (current_det_fps >= 0 && current_cap_fps >= 0) {
         std::string fps_str = "FPS detection: " + std::to_string(current_det_fps) + "   FPS capture: " + std::to_string(current_cap_fps);
         putText(mat_img, fps_str, cv::Point2f(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
-    }
+    //}
 }
 
 

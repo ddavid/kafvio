@@ -60,11 +60,9 @@ namespace cpppc
 
 
     // Normal KF, but possibility to extend to EKF
-    /*
     void set_transition_mtx( const Eigen::Matrix<value_t, StateDim, StateDim> transition_mtx ) {
       this->transition_mtx = transition_mtx;
     };
-    */
 
     void set_ctl_mtx( const Eigen::Matrix<value_t, StateDim, CtlDim> ctl_mtx ) {
       this->ctl_mtx = ctl_mtx;

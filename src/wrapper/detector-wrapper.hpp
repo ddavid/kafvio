@@ -14,6 +14,7 @@
 #ifndef YOLODLL_API
 #define YOLODLL_API
 
+
 struct bbox_t {
 	unsigned int x, y, w, h;	// (x,y) - top-left corner, (w, h) - width & height of bounded box
 	float prob;					// confidence - probability that the object was found correctly
@@ -28,6 +29,7 @@ struct image_t {
 	int c;						// number of chanels (3 - for RGB)
 	float *data;				// pointer to the image data
 };
+
 
 #include "object.h"
 

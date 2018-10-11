@@ -1,3 +1,6 @@
+#ifndef WRAPPER_OPENCV_UTILS
+#define WRAPPER_OPENCV_UTILS
+
 #ifdef __cplusplus
 #include <memory>
 #include <vector>
@@ -26,6 +29,8 @@ cv::Scalar obj_id_to_color(int obj_id) {
   else if( obj_id == 2 ) { return red; }
   else return big_red;
 }
+
+//#ifndef YOLO_CLASS_H
 
 class preview_boxes_t {
   enum { frames_history = 30 }; // how long to keep the history saved
@@ -159,4 +164,5 @@ public:
     }
   }
 };
+#endif  // WRAPPER_OPENCV_UTILS
 #endif  // __cplusplus

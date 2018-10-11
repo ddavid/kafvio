@@ -9,19 +9,15 @@
 
 namespace cpppc{
 
-  template<
-        int StateDim
-      , int MeasDim
-      , int CtlDim = 0
-      , typename T = double>
-  struct bbox_tracking_matrices{
+  template<typename T = double>
+  struct Bbox_Tracking_Matrices{
 
-    Eigen::Matrix<T, StateDim, StateDim> transition_matrix = Eigen::Matrix<T, StateDim, StateDim>::Identity();
-    Eigen::Matrix<T, StateDim, MeasDim> measurement_matrix = Eigen::Matrix<T, StateDim, MeasDim>::Zero();
-    Eigen::Matrix<T, StateDim, CtlDim>      control_matrix = Eigen::Matrix<T, StateDim, CtlDim>::Zero();
+    Eigen::Matrix<T, 4, 4> transition_matrix = Eigen::Matrix<T, 4, 4>::Identity();
+    Eigen::Matrix<T, 4, 2> measurement_matrix = Eigen::Matrix<T, 4, 2>::Zero();
+    Eigen::Matrix<T, 4, 0>      control_matrix = Eigen::Matrix<T, 4, 0>::Zero();
 
     // Transition Matrix for bbox smoothing
-    bbox_tracking_matrices()
+    Bbox_Tracking_Matrices()
     {
       transition_matrix  << 1, 0, 1, 0,
                             0, 1, 0, 1,
@@ -33,19 +29,15 @@ namespace cpppc{
     };
   };
 
-  template<
-        int StateDim
-      , int MeasDim
-      , int CtlDim = 0
-      , typename T = double>
-  struct odometry_filter_matrices{
+  template<typename T = double>
+  struct Odometry_Filter_Matrices{
 
-    Eigen::Matrix<T, StateDim, StateDim> transition_matrix = Eigen::Matrix<T, StateDim, StateDim>::Identity();
-    Eigen::Matrix<T, StateDim, MeasDim> measurement_matrix = Eigen::Matrix<T, StateDim, MeasDim>::Zero();
-    Eigen::Matrix<T, StateDim, CtlDim>      control_matrix = Eigen::Matrix<T, StateDim, CtlDim>::Zero();
+    Eigen::Matrix<T, 2, 2> transition_matrix  = Eigen::Matrix<T, 2, 2>::Identity();
+    Eigen::Matrix<T, 2, 2> measurement_matrix = Eigen::Matrix<T, 2, 2>::Zero();
+    Eigen::Matrix<T, 2, 0>     control_matrix = Eigen::Matrix<T, 2, 0>::Zero();
 
     // Transition Matrix for velocity smoothing
-    odometry_filter_matrices()
+    Odometry_Filter_Matrices()
     {
       // upper right value depends on time step
       transition_matrix  << 1, 1,

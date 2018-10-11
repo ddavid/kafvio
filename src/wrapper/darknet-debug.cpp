@@ -12,6 +12,7 @@
 #include <opencv2/videoio/videoio.hpp>
 
 #include "../odometry/odometry.h"
+#include "../kalman/kalman_config.h"
 
 int main(int argc, char *argv[])
 {   
@@ -26,9 +27,15 @@ int main(int argc, char *argv[])
   int               valid_test;
   float             thresh;
   int               strategy_index;
+  int               odom_state_dim = 2;
+  int               odom_meas_dim  = 2;
+  int               bbox_tracker_state_dim = 4;
+  int               bbox_tracker_meas_dim  = 2;
 
   double            distance_threshold;
   long              frame_counter = 0;
+
+  cpppc::Odometry_Filter_Matrices<double> odom_matrices;
 
   Distance_Strategy distance_strategy;
 
@@ -68,6 +75,9 @@ int main(int argc, char *argv[])
   std::cout << "Using Distance Strat: " << distance_strategy << std::endl;
 
   Detector detector(cfg_file, weights_file);
+
+  std::vector<bbox_t> empty_vec;
+  cpppc::Odometry<2, 2> odometry_holder(empty_vec, odom_matrices.transition_matrix, odom_matrices.measurement_matrix);
 
   steady_clara_start = std::chrono::steady_clock::now();
 
@@ -111,6 +121,8 @@ int main(int argc, char *argv[])
       int const video_fps = cap.get(CV_CAP_PROP_FPS);
       cv::Size const frame_size = cur_frame.size();
       cv::VideoWriter output_video;
+
+      double velocity_estimate, kafi_velocity_estimate;
       // Stream Recording
       if ( record_stream ) output_video.open(out_videofile, CV_FOURCC('M', 'J', 'P', 'G'), std::min(35, video_fps), frame_size, true);
 
@@ -154,6 +166,9 @@ int main(int argc, char *argv[])
                 it->frames_counter = std::min((unsigned)3, i.frames_counter + 1);
               }
             }
+
+            //odometry_holder.update_bboxes(result_vec);
+            velocity_estimate      = odometry_holder.calc_filtered_velocity(result_vec, 6.12);
             consumed = false;
             cv_pre_tracked.notify_all();
           }
@@ -181,7 +196,7 @@ int main(int argc, char *argv[])
               }
             });
           }
-          while (!consumed);    // sync detection
+          while (!consumed){};    // sync detection
           if (!cur_frame.empty()) 
           {
             steady_end = std::chrono::steady_clock::now();
@@ -196,15 +211,16 @@ int main(int argc, char *argv[])
 
             large_preview.set(cur_frame, result_vec);
 
-            std::cout << "Detection FPS: " << current_det_fps << "\n";
-            std::cout << "Capture   FPS: " << current_cap_fps << "\n";
-            show_console_result_distances( result_vec, obj_names );
+            //std::cout << "Detection FPS: " << current_det_fps << "\n";
+            //std::cout << "Capture   FPS: " << current_cap_fps << "\n";
+            //show_console_result_distances( result_vec, obj_names );
             //show_console_result(result_vec, obj_names);
             // Make Results always be on top of Console
-            std::cout << "\033[2J";
-            std::cout << "\033[1;1H";
+            //std::cout << "\033[2J";
+            //std::cout << "\033[1;1H";
 
-            if( live_demo || record_stream)  draw_boxes(cur_frame, result_vec, obj_names, current_det_fps, current_cap_fps);
+            // current_det_fps, current_cap_fps
+            if( live_demo || record_stream)  draw_boxes(cur_frame, result_vec, obj_names, current_det_fps, velocity_estimate);
 
             if( live_demo )
             {
