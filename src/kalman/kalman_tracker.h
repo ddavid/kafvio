@@ -36,7 +36,7 @@ namespace cpppc {
           _tracking_kalman_filter.post_state(1, 0) = bbox.y;
         }
 
-    bool          _removal_flag;
+    bool          _removal_flag = false;
     unsigned int  _track_id;
     kafi_t        _tracking_kalman_filter;
   };
@@ -48,16 +48,37 @@ namespace cpppc {
       , typename T = double>
   class BBox_Tracker{
 
-    using kafi_t = Tracking_Kafi<StateDim, MeasDim, CtlDim, T>;
+    using tracker_t = Tracking_Kafi<StateDim, MeasDim, CtlDim, T>;
 
     // const because at first, we won't modify the bbox coords
-    BBox_Tracker(const std::vector<bbox_t> cur_bbox_vec) {};
+    BBox_Tracker(const std::vector<bbox_t> cur_bbox_vec)
+    : _prev_bbox_vec(cur_bbox_vec)
+    {};
 
     // Optional control parameter, makes prediction for all kafis
-    void predict(){};
+    void predict( Eigen::Matrix<T, CtlDim, 1> control_vector = Eigen::Matrix<T, CtlDim, 1>::Zero())
+    {
+      std::transform(
+            _tracking_kafi_list.begin()
+          , _tracking_kafi_list.end()
+          , _tracking_kafi_list.begin()
+          , [control_vector](const tracker_t & tracker)
+          {
+            tracker._tracking_kalman_filter.predict(control_vector);
+          });
+    };
 
     // Updates kafis based on according bboxes (track_id) and puts updated coords in bboxes
-    void update_bbox_vec(std::vector<bbox_t> cur_bbox_vec) {};
+    void update_tracker(std::vector<bbox_t> cur_bbox_vec)
+    {
+      // Find all bboxes that appear in both current and previous vec
+      std::find_if();
+
+      // Update corresponding kafis with bbox coordinates
+
+      // Set current bbox_vec
+      _prev_bbox_vec = cur_bbox_vec;
+    };
 
     // Remove kafis for bboxes that aren't being tracked anymore
     void clear_old_trackers()
@@ -65,15 +86,19 @@ namespace cpppc {
       // search for bboxes with removal_flag
       // erase-remove idiom
       _prev_bbox_vec.erase(
-            std::remove(_prev_bbox_vec.begin(), _prev_bbox_vec.end(), [](const kafi_t & kafi){ return kafi._removal_flag; })
-          , _prev_bbox_vec.end());
+            std::remove_if(
+                  _prev_bbox_vec.begin()
+                , _prev_bbox_vec.end()
+                , [](const tracker_t & kafi)
+                {
+                    return kafi._removal_flag;
+                }));
     }
 
   private:
 
-    std::vector<bbox_t> _prev_bbox_vec;
-    std::list<kafi_t>   _tracking_kafi_list;
-    Eigen::Matrix<T, StateDim, StateDim>
+    std::vector<bbox_t>    _prev_bbox_vec;
+    std::list<tracker_t>   _tracking_kafi_list;
   };
   // Class to wrap a kalman tracker
   // Map obj_ids to instances of kfs coming from a kf factory (lol!) -> Just have the transition matrix etc. as private members here...

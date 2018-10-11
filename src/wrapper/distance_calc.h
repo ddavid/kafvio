@@ -7,6 +7,8 @@
 
 #include "detector-wrapper.hpp"
 
+enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1, CONE_AVERAGE = 2 };
+
 struct intrinsic_camera_parameters {
 
   // AOV calculated in

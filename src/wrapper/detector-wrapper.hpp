@@ -29,8 +29,6 @@ struct image_t {
 	float *data;				// pointer to the image data
 };
 
-enum Distance_Strategy { CONE_HEIGHT = 0, CONE_WIDTH = 1, CONE_AVERAGE = 2 };
-
 #include "object.h"
 
 #ifdef __cplusplus
