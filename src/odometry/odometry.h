@@ -138,9 +138,14 @@ namespace cpppc {
       // Set new bbox_vec
       this->_prev_bbox_vec = bbox_vec;
     };
+    
+    void set_time_step(const double time_step)
+    {
+      _time_step = time_step;
+    }
 
     // Without updating time_step, we assume acceleration is given scaled to the size of the time_step
-    void update_kafi_time_step(double time_step)
+    void update_kafi_time_step(const double time_step)
     {
       _velocity_kafi.transition_mtx(0, 1) = static_cast<T>(time_step);
     }
