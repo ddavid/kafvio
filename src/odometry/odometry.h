@@ -47,6 +47,10 @@ namespace cpppc {
               , tmp_vec.end()
               , [](const bbox_t & fst_bbox, const bbox_t & snd_bbox) {return fst_bbox.track_id < snd_bbox.track_id;});
           this->_prev_bbox_vec = std::move(tmp_vec);
+
+          this->_velocity_kafi.set_process_noise(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.0001);
+          this->_velocity_kafi.set_measurement_noise(Eigen::Matrix<T, MeasDim, MeasDim>::Identity() * 10);
+          this->_velocity_kafi.set_process_cov(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.1);
         };
 
     ~Odometry() = default;
