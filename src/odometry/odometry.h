@@ -35,7 +35,7 @@ namespace cpppc {
           const std::vector<bbox_t> cur_bbox_vec
         , Eigen::Matrix<value_t, StateDim, StateDim> transition_matrix = Eigen::Matrix<value_t, StateDim, StateDim>::Identity()
         , Eigen::Matrix<value_t, MeasDim, StateDim> measurement_matrix = Eigen::Matrix<value_t, MeasDim, StateDim>::Zero()
-        , Eigen::Matrix<value_t, StateDim, CtlDim> control_matrix = Eigen::Matrix<value_t, StateDim, CtlDim>::Zero())
+        , Eigen::Matrix<value_t, StateDim, CtlDim> control_matrix      = Eigen::Matrix<value_t, StateDim, CtlDim>::Zero())
         :
           _velocity_kafi(transition_matrix, measurement_matrix)
         {
@@ -61,39 +61,35 @@ namespace cpppc {
     // -> return Average distance / time_step
     const double calc_velocity( const std::vector<bbox_t> cur_bbox_vec ) const
     {
-      // Sort current bbox_vec by track_id
-      std::vector<bbox_t> cur_tmp_vec(cur_bbox_vec);
-      std::sort(
-          cur_tmp_vec.begin()
-          , cur_tmp_vec.end()
-          , [](const bbox_t & fst_bbox, const bbox_t & snd_bbox) {return fst_bbox.track_id < snd_bbox.track_id;});
+      int counter         = 0;
+      double acc_distance = 0;
+      double avg_distance;
 
-      // Get intersection based on track_id
-      std::vector<bbox_t> matched_track_ids;
-      std::vector<bbox_t> set_intersection( _prev_bbox_vec.begin(), _prev_bbox_vec.end()
-                               , cur_tmp_vec.begin(), cur_tmp_vec.end()
-                               , std::back_inserter(matched_track_ids)
-                               , [](const bbox_t & fst_bbox, const bbox_t & snd_bbox )
-                               {
-                                  return fst_bbox.track_id < snd_bbox.track_id;
-                               });
-
-      const double time_step(_time_step);
-      const double acc_vel(std::accumulate(
-                cur_bbox_vec.begin()
-                , cur_bbox_vec.end()
-                , 0
-                , [time_step](const double & acc_dist, const bbox_t & bbox)
+      // Calculate distance Deltas for all track_id matches
+      std::for_each(
+            cur_bbox_vec.begin()
+          , cur_bbox_vec.end()
+          , [&](const bbox_t & bbox)
+          {
+            auto prev_it = std::find_if(
+                  _prev_bbox_vec.begin()
+                , _prev_bbox_vec.end()
+                , [bbox](const bbox_t & prev_bbox)
                 {
-                  return ( acc_dist + distance_estimation( bbox, Distance_Strategy::CONE_HEIGHT)) / time_step;
-                }));
-
-
+                  return bbox.track_id == prev_bbox.track_id;
+                });
+            if(prev_it != _prev_bbox_vec.end())
+            {
+              ++counter;
+              acc_distance += distance_estimation(*prev_it, Distance_Strategy::CONE_HEIGHT) - distance_estimation(bbox, Distance_Strategy::CONE_HEIGHT);
+            }
+          });
+      // Average Distance Deltas
+      avg_distance = ( acc_distance / counter);
       // Update previous sorted bbox vector with current sorted bbox vector
-      this->update_bboxes(std::move(cur_tmp_vec));
-
-      // Average velocity over # of bboxes
-      return acc_vel / cur_bbox_vec.size();
+      this->update_bboxes(cur_bbox_vec);
+      // Average velocity
+      return avg_distance / _time_step;
     };
 
     /* Calculate velocity using KaFi
@@ -101,25 +97,34 @@ namespace cpppc {
      */
     const double calc_filtered_velocity(
           const std::vector<bbox_t> cur_bbox_vec
-        , Eigen::Matrix<value_t, MeasDim, 1> meas_vec
-        , double time_step );
+        , const double accell
+        , double time_step )
+    {
+      // Create measurement vector
+      Eigen::Matrix<value_t, MeasDim, 1> measurement;
+      measurement << calc_velocity(cur_bbox_vec) << accell;
+
+      this->_velocity_kafi.kafi.update(measurement);
+    };
 
     /* Replace old bbox vector
      * Adjust tansition_matrix if necessary and make prediction step
      */
     void update_bboxes( const std::vector<bbox_t> bbox_vec, double time_step = 0)
     {
+      this->_velocity_kafi.kafi.predict();
+
       // Update time_step
       if(time_step != 0) {
         this->_time_step = time_step;
-        this->update_time_step(time_step);
+        this->update_kafi_time_step(time_step);
       }
       // Set new bbox_vec
       this->_prev_bbox_vec = bbox_vec;
     };
 
     // Without updating time_step, we assume acceleration is given scaled to the size of the time_step
-    void update_time_step(double time_step)
+    void update_kafi_time_step(double time_step)
     {
       _velocity_kafi.transition_matrix(0, 1) = static_cast<T>(time_step);
     }

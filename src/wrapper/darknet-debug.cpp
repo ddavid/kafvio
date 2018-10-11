@@ -11,6 +11,8 @@
 #include <opencv2/core/version.hpp>
 #include <opencv2/videoio/videoio.hpp>
 
+#include "../odometry/odometry.h"
+
 int main(int argc, char *argv[])
 {   
   std::string       names_file;
