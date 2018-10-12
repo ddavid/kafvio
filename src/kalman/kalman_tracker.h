@@ -7,7 +7,8 @@
 
 #include "kalman_filter.h"
 #include "kalman_config.h"
-#include "../yolo_v2_class.hpp"
+#include "../wrapper/opencv_utils.hpp"
+#include "../wrapper/detector-wrapper.hpp"
 #include <list>
 
 namespace cpppc {
