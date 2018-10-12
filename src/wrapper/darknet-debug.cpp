@@ -12,6 +12,7 @@
 #include <opencv2/videoio/videoio.hpp>
 
 #include "../odometry/odometry.h"
+#include "../kalman/kalman_tracker.h"
 #include "../kalman/kalman_config.h"
 
 int main(int argc, char *argv[])
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
 
   std::vector<bbox_t> empty_vec;
   cpppc::Odometry<2, 2> odometry_holder(empty_vec, odom_matrices.transition_matrix, odom_matrices.measurement_matrix);
+  cpppc::BBox_Tracker<4, 2> kalman_tracker(empty_vec);
 
   steady_clara_start = std::chrono::steady_clock::now();
 

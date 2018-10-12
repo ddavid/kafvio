@@ -6,6 +6,7 @@
 #define WRAPPER_KALMAN_TRACKER_H
 
 #include "kalman_filter.h"
+#include "kalman_config.h"
 #include "../yolo_v2_class.hpp"
 #include <list>
 
@@ -34,6 +35,10 @@ namespace cpppc {
         {
           _tracking_kalman_filter.post_state(0, 0) = bbox.x;
           _tracking_kalman_filter.post_state(1, 0) = bbox.y;
+
+          _tracking_kalman_filter.set_process_noise(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.0001);
+          _tracking_kalman_filter.set_measurement_noise(Eigen::Matrix<T, MeasDim, MeasDim>::Identity() * 10);
+          _tracking_kalman_filter.set_process_cov(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.1);
         }
 
     bool          _removal_flag = false;
@@ -48,10 +53,12 @@ namespace cpppc {
       , typename T = double>
   class BBox_Tracker{
 
-    using tracker_t = Tracking_Kafi<StateDim, MeasDim, CtlDim, T>;
+    using tracker_t  = Tracking_Kafi<StateDim, MeasDim, CtlDim, T>;
+    using matrices_t = Bbox_Tracking_Matrices<T>;
 
+  public:
     // const because at first, we won't modify the bbox coords
-    BBox_Tracker(const std::vector<bbox_t> cur_bbox_vec)
+    BBox_Tracker(const std::vector<bbox_t> & cur_bbox_vec)
     : _prev_bbox_vec(cur_bbox_vec)
     {};
 
@@ -61,20 +68,74 @@ namespace cpppc {
       std::transform(
             _tracking_kafi_list.begin()
           , _tracking_kafi_list.end()
-          , _tracking_kafi_list.begin()
           , [control_vector](const tracker_t & tracker)
           {
             tracker._tracking_kalman_filter.predict(control_vector);
           });
     };
 
-    // Updates kafis based on according bboxes (track_id) and puts updated coords in bboxes
-    void update_tracker(std::vector<bbox_t> cur_bbox_vec)
+    // Initialize kafis for all newly tracked bboxes
+    void initialize_trackers(const std::vector<bbox_t> & cur_bbox_vec)
     {
       // Find all bboxes that appear in both current and previous vec
-      std::find_if();
+      std::for_each(
+          cur_bbox_vec.begin()
+          , cur_bbox_vec.end()
+          , [&](const bbox_t & cur_bbox)
+          {
+            auto prev_it = std::find_if(
+                _prev_bbox_vec.begin()
+                , _prev_bbox_vec.end()
+                , [cur_bbox](const bbox_t & prev_bbox)
+                {
+                  return cur_bbox.track_id == prev_bbox.track_id;
+                });
+            // Matched bbox found
+            if(prev_it != _prev_bbox_vec.end())
+            {
+              // Initialize Kafi for newly tracked bboxes
+              if(!std::any_of(
+                  _tracking_kafi_list.begin(), _tracking_kafi_list.end()
+                  , [cur_bbox](const tracker_t & kafi){ return cur_bbox.track_id == kafi._track_id;}))
+              {
+                tracker_t tracking_kafi(
+                    cur_bbox
+                    , _bbox_tracking_matrices.transition_matrix
+                    , _bbox_tracking_matrices.measurement_matrix);
+                _tracking_kafi_list.push_front(tracking_kafi);
+              }
+
+            }
+          });
+    }
+
+    // Updates kafis based on according bboxes (track_id) and puts updated coords in bboxes
+    void update_tracker(std::vector<bbox_t> & cur_bbox_vec)
+    {
+      this->initialize_trackers(cur_bbox_vec);
 
       // Update corresponding kafis with bbox coordinates
+      std::for_each(
+            cur_bbox_vec.begin()
+          , cur_bbox_vec.end()
+          , [&](const bbox_t & cur_bbox)
+          {
+            // Perform update step for all trackers that are old enough
+            if(cur_bbox.frames_counter > 2)
+            {
+              auto tracker_it = std::find_if(_tracking_kafi_list.begin(), _tracking_kafi_list.end(), [cur_bbox](const tracker_t & kafi)
+              {
+                  return cur_bbox.track_id == kafi._track_id;
+              });
+              // Update Kafi
+              Eigen::Matrix<T, MeasDim, 1> measurement_vector;
+              measurement_vector << cur_bbox.x, cur_bbox.y;
+              *tracker_it._tracking_kalman_filter.update(measurement_vector);
+              // Adjust bbox coords based on Kafi
+              cur_bbox.x = *tracker_it._tracking_kalman_fiilter.post_state(0, 0);
+              cur_bbox.y = *tracker_it._tracking_kalman_fiilter.post_state(0, 1);
+            }
+          });
 
       // Set current bbox_vec
       _prev_bbox_vec = cur_bbox_vec;
@@ -99,31 +160,7 @@ namespace cpppc {
 
     std::vector<bbox_t>    _prev_bbox_vec;
     std::list<tracker_t>   _tracking_kafi_list;
+    matrices_t             _bbox_tracking_matrices;
   };
-  // Class to wrap a kalman tracker
-  // Map obj_ids to instances of kfs coming from a kf factory (lol!) -> Just have the transition matrix etc. as private members here...
-  // All have the same transition matrix, meas_mtx etc.) but different starting states
-  /*
-   * State x := (x, y, dx, dy)^T
-   * Measurements z := (x, y)^T
-   *
-   * Goal of KF is to smooth the trend of the bboxes
-   */
-
-  /*
-   * Alternativ:
-   *
-   * State x := (h, v, a)^T
-   * Measurement z := (h, v, a)^T
-   *
-   */
-
-  /*
-   * Alternativ: KFs for smoothing and for predicting the velocity -> v from vis. od. fused with accell from IMU
-   *
-   * State x := (v, a)^T
-   * Measurement z := (v, a)^T
-   *
-   */
 }
 #endif //WRAPPER_KALMAN_TRACKER_H
