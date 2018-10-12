@@ -22,6 +22,7 @@ namespace cpppc {
   struct Tracking_Kafi{
 
     using kafi_t = Kalman_Filter<StateDim, MeasDim, CtlDim, T>;
+    using self_t = Tracking_Kafi<StateDim, MeasDim, CtlDim, T>;
 
   /*
    * Wrapper Struct for Kalman Filters with tracking_ids and state initialization
@@ -41,7 +42,17 @@ namespace cpppc {
           _tracking_kalman_filter.set_process_noise(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.0001);
           _tracking_kalman_filter.set_measurement_noise(Eigen::Matrix<T, MeasDim, MeasDim>::Identity() * 10);
           _tracking_kalman_filter.set_process_cov(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.1);
-        }
+        };
+
+    ~Tracking_Kafi() = default;
+
+    Tracking_Kafi( const self_t & ) = default;
+
+    Tracking_Kafi( self_t && ) = default;
+
+    self_t &operator=( const self_t & ) = default;
+
+    self_t &operator=( self_t && ) = default;
 
     bool          _removal_flag = false;
     unsigned int  _track_id;
