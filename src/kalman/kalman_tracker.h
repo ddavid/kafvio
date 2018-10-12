@@ -10,6 +10,7 @@
 #include "../wrapper/opencv_utils.hpp"
 #include "../wrapper/detector-wrapper.hpp"
 #include <list>
+#include <algorithm>
 
 namespace cpppc {
 
@@ -69,7 +70,8 @@ namespace cpppc {
       std::transform(
             _tracking_kafi_list.begin()
           , _tracking_kafi_list.end()
-          , [control_vector](const tracker_t & tracker)
+          , _tracking_kafi_list.begin()
+          , [control_vector](tracker_t & tracker)
           {
             tracker._tracking_kalman_filter.predict(control_vector);
           });
@@ -119,7 +121,7 @@ namespace cpppc {
       std::for_each(
             cur_bbox_vec.begin()
           , cur_bbox_vec.end()
-          , [&](const bbox_t & cur_bbox)
+          , [&](bbox_t & cur_bbox)
           {
             // Perform update step for all trackers that are old enough
             if(cur_bbox.frames_counter > 2)
@@ -131,10 +133,10 @@ namespace cpppc {
               // Update Kafi
               Eigen::Matrix<T, MeasDim, 1> measurement_vector;
               measurement_vector << cur_bbox.x, cur_bbox.y;
-              *tracker_it._tracking_kalman_filter.update(measurement_vector);
+              tracker_it->_tracking_kalman_filter.update(measurement_vector);
               // Adjust bbox coords based on Kafi
-              cur_bbox.x = *tracker_it._tracking_kalman_fiilter.post_state(0, 0);
-              cur_bbox.y = *tracker_it._tracking_kalman_fiilter.post_state(0, 1);
+              cur_bbox.x = tracker_it->_tracking_kalman_filter.post_state(0, 0);
+              cur_bbox.y = tracker_it->_tracking_kalman_filter.post_state(0, 1);
             }
           });
 

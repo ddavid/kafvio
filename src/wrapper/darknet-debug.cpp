@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 
   auto obj_names = objects_names_from_file(names_file);
 
-  std::string out_videofile = "/home/david/Videos/darknet-recording.avi";
+  std::string out_videofile = "/home/fsd/Videos/darknet-recording.avi";
 
   while (true) 
   {   
@@ -173,8 +173,11 @@ int main(int argc, char *argv[])
             }
 
             //odometry_holder.update_bboxes(result_vec);
-            velocity_estimate      = odometry_holder.calc_filtered_velocity(result_vec, 6.12);
+            double accell = 6.12 / 140.0;
+            odometry_holder.set_time_step(60.0/140.0);
+            velocity_estimate      = odometry_holder.calc_filtered_velocity(result_vec, accell);
             kalman_tracker.update_tracker(result_vec);
+
             consumed = false;
             cv_pre_tracked.notify_all();
           }
