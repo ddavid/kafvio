@@ -66,6 +66,7 @@ namespace cpppc {
       , typename T = double>
   class BBox_Tracker{
 
+    using self_t     = BBox_Tracker<StateDim, MeasDim, CtlDim, T>;  
     using tracker_t  = Tracking_Kafi<StateDim, MeasDim, CtlDim, T>;
     using matrices_t = Bbox_Tracking_Matrices<T>;
 
@@ -75,13 +76,22 @@ namespace cpppc {
     : _prev_bbox_vec(cur_bbox_vec)
     {};
 
+    ~BBox_Tracker() = default;
+
+    BBox_Tracker( const self_t & ) = default;
+
+    BBox_Tracker( self_t && ) = default;
+
+    self_t &operator=( const self_t & ) = default;
+
+    self_t &operator=( self_t && ) = default;
+
     // Optional control parameter, makes prediction for all kafis
     void predict( Eigen::Matrix<T, CtlDim, 1> control_vector = Eigen::Matrix<T, CtlDim, 1>::Zero())
     {
-      std::transform(
+      std::for_each(
             _tracking_kafi_list.begin()
           , _tracking_kafi_list.end()
-          , _tracking_kafi_list.begin()
           , [control_vector](tracker_t & tracker)
           {
             tracker._tracking_kalman_filter.predict(control_vector);
@@ -147,7 +157,7 @@ namespace cpppc {
               tracker_it->_tracking_kalman_filter.update(measurement_vector);
               // Adjust bbox coords based on Kafi
               cur_bbox.x = tracker_it->_tracking_kalman_filter.post_state(0, 0);
-              cur_bbox.y = tracker_it->_tracking_kalman_filter.post_state(0, 1);
+              cur_bbox.y = tracker_it->_tracking_kalman_filter.post_state(1, 0);
             }
           });
 
