@@ -143,6 +143,9 @@ int main(int argc, char *argv[])
           // swap result bboxes and input-frame
           if(consumed)
           {
+            // Try predicting more often...
+            kalman_tracker.predict();
+
             std::unique_lock<std::mutex> lock(mtx);
             det_image = detector.mat_to_image_resize(cur_frame);
             auto old_result_vec = detector.tracking_id(result_vec);
@@ -171,6 +174,7 @@ int main(int argc, char *argv[])
 
             //odometry_holder.update_bboxes(result_vec);
             velocity_estimate      = odometry_holder.calc_filtered_velocity(result_vec, 6.12);
+            kalman_tracker.update_tracker(result_vec);
             consumed = false;
             cv_pre_tracked.notify_all();
           }
