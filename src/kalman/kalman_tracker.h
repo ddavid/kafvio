@@ -38,6 +38,7 @@ namespace cpppc {
         {
           _tracking_kalman_filter.post_state(0, 0) = bbox.x;
           _tracking_kalman_filter.post_state(1, 0) = bbox.y;
+          std::cout << "ctor kafi post state: " << _tracking_kalman_filter.post_state << std::endl;
 
           _tracking_kalman_filter.set_process_noise(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.0001);
           _tracking_kalman_filter.set_measurement_noise(Eigen::Matrix<T, MeasDim, MeasDim>::Identity() * 10);
@@ -145,21 +146,22 @@ namespace cpppc {
           , [&](bbox_t & cur_bbox)
           {
             // Perform update step for all trackers that are old enough
-            if(cur_bbox.frames_counter > 2)
+            if(cur_bbox.frames_counter > 2 && cur_bbox.track_id > 0)
             {
               auto tracker_it = std::find_if(_tracking_kafi_list.begin(), _tracking_kafi_list.end(), [cur_bbox](const tracker_t & kafi)
               {
                   return cur_bbox.track_id == kafi._track_id;
               });
-              std::cout << "About to die" << std::endl;
-              // Update Kafi
-              Eigen::Matrix<T, 2, 1> measurement_vector;
-              measurement_vector << cur_bbox.x, cur_bbox.y;
-              tracker_it->_tracking_kalman_filter.update(measurement_vector);
-              // Adjust bbox coords based on Kafi
-              cur_bbox.x = tracker_it->_tracking_kalman_filter.post_state(0, 0);
-              cur_bbox.y = tracker_it->_tracking_kalman_filter.post_state(1, 0);
-              std::cout << "Not really" << std::endl;
+              if(tracker_it != _tracking_kafi_list.end())
+              {
+                // Update Kafi
+                Eigen::Matrix<T, 2, 1> measurement_vector;
+                measurement_vector << (double)cur_bbox.x, (double)cur_bbox.y;
+                tracker_it->_tracking_kalman_filter.update(measurement_vector);
+                // Adjust bbox coords based on Kafi
+                cur_bbox.x = tracker_it->_tracking_kalman_filter.post_state(0, 0);
+                cur_bbox.y = tracker_it->_tracking_kalman_filter.post_state(1, 0);
+              }
             }
           });
 

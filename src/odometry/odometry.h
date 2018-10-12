@@ -94,7 +94,6 @@ namespace cpppc {
       avg_distance = ( acc_distance / counter);
       // Update previous sorted bbox vector with current sorted bbox vector
       this->update_bboxes(cur_bbox_vec);
-      std::cout << "Average velocity: " << avg_distance << std::endl;
       // Average velocity
       const double avg_velocity = avg_distance / _time_step;
       if(!std::isnan(avg_velocity))
@@ -116,11 +115,8 @@ namespace cpppc {
       measurement << calc_velocity(cur_bbox_vec), static_cast<value_t >(accell);
 
       this->_velocity_kafi.update(measurement);
-      std::cout << "Kafi pre state after update: " << this->_velocity_kafi.pre_state << std::endl;
-      std::cout << "Kafi post state after update: " << this->_velocity_kafi.post_state << std::endl;
       const double filtered_velocity(this->_velocity_kafi.post_state(0, 0));
 
-      std::cout << "Filtered velocity: " << filtered_velocity << std::endl;
       return filtered_velocity;
     };
 
@@ -130,10 +126,7 @@ namespace cpppc {
     void update_bboxes( const std::vector<bbox_t> bbox_vec, double time_step = 1)
     {
       this->_velocity_kafi.predict();
-      std::cout << "Predicted Odom Kafi: " << std::endl;
-      std::cout << "Kafi pre state after predict: " << _velocity_kafi.pre_state << std::endl;
-      std::cout << "Kafi post state after predict: " << _velocity_kafi.post_state << std::endl;
-
+      
       // Update time_step
       if(time_step != 1) {
         this->_time_step = time_step;
