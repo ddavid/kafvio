@@ -13,7 +13,7 @@ namespace cpppc{
   struct Bbox_Tracking_Matrices{
 
     Eigen::Matrix<T, 4, 4> transition_matrix = Eigen::Matrix<T, 4, 4>::Identity();
-    Eigen::Matrix<T, 4, 2> measurement_matrix = Eigen::Matrix<T, 4, 2>::Zero();
+    Eigen::Matrix<T, 2, 4> measurement_matrix = Eigen::Matrix<T, 2, 4>::Zero();
     Eigen::Matrix<T, 4, 0>      control_matrix = Eigen::Matrix<T, 4, 0>::Zero();
 
     // Transition Matrix for bbox smoothing

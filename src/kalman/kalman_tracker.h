@@ -30,7 +30,7 @@ namespace cpppc {
     Tracking_Kafi(
           const bbox_t & bbox
         , Eigen::Matrix<T, StateDim, StateDim> transition_matrix = Eigen::Matrix<T, StateDim, StateDim>::Identity()
-        , Eigen::Matrix<T, StateDim, MeasDim> measurement_matrix = Eigen::Matrix<T, StateDim, MeasDim>::Zero()
+        , Eigen::Matrix<T, MeasDim, StateDim> measurement_matrix = Eigen::Matrix<T, MeasDim, StateDim>::Zero()
         , Eigen::Matrix<T, StateDim, CtlDim> control_matrix = Eigen::Matrix<T, StateDim, CtlDim>::Zero())
         :
           _track_id(bbox.track_id)
@@ -152,7 +152,7 @@ namespace cpppc {
                   return cur_bbox.track_id == kafi._track_id;
               });
               // Update Kafi
-              Eigen::Matrix<T, MeasDim, 1> measurement_vector;
+              Eigen::Matrix<T, 2, 1> measurement_vector;
               measurement_vector << cur_bbox.x, cur_bbox.y;
               tracker_it->_tracking_kalman_filter.update(measurement_vector);
               // Adjust bbox coords based on Kafi
