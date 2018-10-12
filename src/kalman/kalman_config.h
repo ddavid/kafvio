@@ -24,8 +24,8 @@ namespace cpppc{
                             0, 0, 1, 0,
                             0, 0, 0, 1;
 
-      measurement_matrix << 1, 0,
-                            0, 1;
+      measurement_matrix << 1, 0, 0, 0,
+                            0, 1, 0, 0;
     };
   };
 

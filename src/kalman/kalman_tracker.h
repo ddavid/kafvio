@@ -151,6 +151,7 @@ namespace cpppc {
               {
                   return cur_bbox.track_id == kafi._track_id;
               });
+              std::cout << "About to die" << std::endl;
               // Update Kafi
               Eigen::Matrix<T, 2, 1> measurement_vector;
               measurement_vector << cur_bbox.x, cur_bbox.y;
@@ -158,6 +159,7 @@ namespace cpppc {
               // Adjust bbox coords based on Kafi
               cur_bbox.x = tracker_it->_tracking_kalman_filter.post_state(0, 0);
               cur_bbox.y = tracker_it->_tracking_kalman_filter.post_state(1, 0);
+              std::cout << "Not really" << std::endl;
             }
           });
 
