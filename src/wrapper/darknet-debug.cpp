@@ -28,11 +28,8 @@ int main(int argc, char *argv[])
   int               valid_test;
   float             thresh;
   int               strategy_index;
-  int               odom_state_dim = 2;
-  int               odom_meas_dim  = 2;
-  int               bbox_tracker_state_dim = 4;
-  int               bbox_tracker_meas_dim  = 2;
-
+ 
+  double            acc_velocity = 0.0;
   double            distance_threshold;
   long              frame_counter = 0;
 
@@ -144,7 +141,7 @@ int main(int argc, char *argv[])
           if(consumed)
           {
             // Try predicting more often...
-            kalman_tracker.predict();
+            //kalman_tracker.predict();
 
             std::unique_lock<std::mutex> lock(mtx);
             det_image = detector.mat_to_image_resize(cur_frame);
@@ -175,7 +172,7 @@ int main(int argc, char *argv[])
             //odometry_holder.update_bboxes(result_vec);
             double accell = 6.12 / 140.0;
             odometry_holder.set_time_step(60.0/140.0);
-            velocity_estimate      = odometry_holder.calc_filtered_velocity(result_vec, accell);
+            acc_velocity = odometry_holder.calc_filtered_velocity(result_vec, accell);
             kalman_tracker.update_tracker(result_vec);
 
             consumed = false;
@@ -208,11 +205,13 @@ int main(int argc, char *argv[])
           while (!consumed){};    // sync detection
           if (!cur_frame.empty()) 
           {
+            kalman_tracker.predict();  
             steady_end = std::chrono::steady_clock::now();
             if (std::chrono::duration<double>(steady_end - steady_start).count() >= 1) 
             {
               current_det_fps      = fps_det_counter;
               current_cap_fps      = fps_cap_counter;
+              velocity_estimate    = acc_velocity/fps_det_counter;
               steady_start = steady_end;
               fps_det_counter  = 0;
               fps_cap_counter  = 0;

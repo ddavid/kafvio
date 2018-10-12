@@ -104,7 +104,7 @@ void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std
         ++index;
     }
     //if (current_det_fps >= 0 && current_cap_fps >= 0) {
-        std::string fps_str = "FPS detection: " + std::to_string(current_det_fps) + "   FPS capture: " + std::to_string(current_cap_fps);
+        std::string fps_str = "FPS detection: " + std::to_string(current_det_fps) + "   Estimated Velocity (m/s): " + std::to_string(current_cap_fps);
         putText(mat_img, fps_str, cv::Point2f(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 2);
     //}
 }

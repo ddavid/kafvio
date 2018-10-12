@@ -38,8 +38,9 @@ namespace cpppc {
         {
           _tracking_kalman_filter.post_state(0, 0) = bbox.x;
           _tracking_kalman_filter.post_state(1, 0) = bbox.y;
-          std::cout << "ctor kafi post state: " << _tracking_kalman_filter.post_state << std::endl;
-
+          _tracking_kalman_filter.pre_state(0, 0)  = bbox.x;
+          _tracking_kalman_filter.pre_state(1, 0)  = bbox.y;
+          
           _tracking_kalman_filter.set_process_noise(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.0001);
           _tracking_kalman_filter.set_measurement_noise(Eigen::Matrix<T, MeasDim, MeasDim>::Identity() * 10);
           _tracking_kalman_filter.set_process_cov(Eigen::Matrix<T, StateDim, StateDim>::Identity() * 0.1);
