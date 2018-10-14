@@ -450,7 +450,7 @@ cv::Scalar obj_id_to_color(int obj_id) {
 }
 
 class preview_boxes_t {
-	enum { frames_history = 30 };	// how long to keep the history saved
+	enum { frames_history = 4 };	// how long to keep the history saved
 
 	struct preview_box_track_t {
 		unsigned int track_id, obj_id, last_showed_frames_ago;

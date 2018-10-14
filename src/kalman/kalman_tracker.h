@@ -114,7 +114,10 @@ namespace cpppc {
                 , _prev_bbox_vec.end()
                 , [cur_bbox](const bbox_t & prev_bbox)
                 {
-                  return cur_bbox.track_id == prev_bbox.track_id;
+                  // All untracked objects have track_id = 0
+                  const bool tracked     = cur_bbox.track_id != 0;
+                  const bool same_object = cur_bbox.track_id == prev_bbox.track_id;
+                  return tracked && same_object;
                 });
             // Matched bbox found
             if(prev_it != _prev_bbox_vec.end())
@@ -130,7 +133,6 @@ namespace cpppc {
                     , _bbox_tracking_matrices.measurement_matrix);
                 _tracking_kafi_list.push_front(tracking_kafi);
               }
-
             }
           });
     }
@@ -165,7 +167,6 @@ namespace cpppc {
               }
             }
           });
-
       // Set current bbox_vec
       _prev_bbox_vec = cur_bbox_vec;
     };

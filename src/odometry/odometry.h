@@ -126,7 +126,7 @@ namespace cpppc {
     void update_bboxes( const std::vector<bbox_t> bbox_vec, double time_step = 1)
     {
       this->_velocity_kafi.predict();
-      
+
       // Update time_step
       if(time_step != 1) {
         this->_time_step = time_step;

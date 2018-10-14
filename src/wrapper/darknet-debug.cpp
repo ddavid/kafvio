@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
             {
               current_det_fps      = fps_det_counter;
               current_cap_fps      = fps_cap_counter;
-              velocity_estimate    = acc_velocity/fps_det_counter;
+              velocity_estimate    = 10*acc_velocity/fps_det_counter;
               steady_start = steady_end;
               fps_det_counter  = 0;
               fps_cap_counter  = 0;
