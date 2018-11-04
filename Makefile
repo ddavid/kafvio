@@ -16,14 +16,20 @@ OS := $(shell uname)
 # Tesla V100
 # ARCH= -gencode arch=compute_70,code=[sm_70,compute_70]
 
+# GeForce RTX 2080 Ti, RTX 2080, RTX 2070	Quadro RTX 8000, Quadro RTX 6000, Quadro RTX 5000	Tesla T4
+# ARCH= -gencode arch=compute_75,code=[sm_75,compute_75]
+
+# Jetson XAVIER
+# ARCH= -gencode arch=compute_72,code=[sm_72,compute_72]
+
 # GTX 1080, GTX 1070, GTX 1060, GTX 1050, GTX 1030, Titan Xp, Tesla P40, Tesla P4
 # ARCH= -gencode arch=compute_61,code=sm_61 -gencode arch=compute_61,code=compute_61
 
 # GP100/Tesla P100 – DGX-1
 # ARCH= -gencode arch=compute_60,code=sm_60
 
-# For Jetson Tx1 uncomment:
-# ARCH= -gencode arch=compute_51,code=[sm_51,compute_51]
+# For Jetson TX1, Tegra X1, DRIVE CX, DRIVE PX - uncomment:
+# ARCH= -gencode arch=compute_53,code=[sm_53,compute_53]
 
 # For Jetson Tx2 or Drive-PX2 uncomment:
 #ARCH= -gencode arch=compute_62,code=[sm_62,compute_62] # \ -gencode arch=compute_52, code=[sm_52, compute_52]
@@ -48,6 +54,11 @@ CFLAGS=-Wall -Wfatal-errors
 
 ifeq ($(DEBUG), 1) 
 OPTS=-O0 -g
+=======
+OPTS= -O0 -g
+else
+ifeq ($(AVX), 1) 
+CFLAGS+= -ffp-contract=fast -mavx -mavx2 -msse3 -msse4.1 -msse4.2 -msse4a
 endif
 
 CFLAGS+=$(OPTS)
@@ -107,7 +118,7 @@ $(LIBNAMESO): $(OBJS) src/yolo_v2_class.hpp src/yolo_v2_class.cpp
 endif
 
 $(EXEC): $(OBJS)
-	$(CPP) $(COMMON) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+	$(CPP) -std=c++11 $(COMMON) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 $(OBJDIR)%.o: %.c $(DEPS)
 	$(CC) $(COMMON) $(CFLAGS) -c $< -o $@

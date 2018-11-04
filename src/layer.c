@@ -33,6 +33,8 @@ void free_layer(layer l)
 	if (l.scale_updates)      free(l.scale_updates);
 	if (l.weights)            free(l.weights);
 	if (l.weight_updates)     free(l.weight_updates);
+    if (l.align_bit_weights)  free(l.align_bit_weights);
+    if (l.mean_arr)           free(l.mean_arr);
 	if (l.delta)              free(l.delta);
 	if (l.output)             free(l.output);
 	if (l.squared)            free(l.squared);
@@ -52,6 +54,7 @@ void free_layer(layer l)
 	if (l.r_cpu)              free(l.r_cpu);
 	if (l.h_cpu)              free(l.h_cpu);
 	if (l.binary_input)       free(l.binary_input);
+    if (l.loss)               free(l.loss);
 
 #ifdef GPU
 	if (l.indexes_gpu)           cuda_free((float *)l.indexes_gpu);
@@ -82,6 +85,12 @@ void free_layer(layer l)
 	if (l.mean_delta_gpu)          cuda_free(l.mean_delta_gpu);
 	if (l.x_gpu)                   cuda_free(l.x_gpu);
 	if (l.x_norm_gpu)              cuda_free(l.x_norm_gpu);
+
+    if (l.align_bit_weights_gpu)   cuda_free(l.align_bit_weights_gpu);
+    if (l.mean_arr_gpu)            cuda_free(l.mean_arr_gpu);
+    if (l.align_workspace_gpu)     cuda_free(l.align_workspace_gpu);
+    if (l.transposed_align_workspace_gpu) cuda_free(l.transposed_align_workspace_gpu);
+
 	if (l.weights_gpu)             cuda_free(l.weights_gpu);
 	if (l.weight_updates_gpu)      cuda_free(l.weight_updates_gpu);
 	if (l.weights_gpu16)           cuda_free(l.weights_gpu16);

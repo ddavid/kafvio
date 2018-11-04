@@ -9,8 +9,8 @@ extern "C" {
 
 __global__ void forward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_c, int stride, int size, int pad, float *input, float *output, int *indexes)
 {
-    int h = (in_h + 2*pad)/stride;
-    int w = (in_w + 2*pad)/stride;
+    int h = (in_h + pad - size) / stride + 1;
+    int w = (in_w + pad - size) / stride + 1;
     int c = in_c;
 
     int id = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
@@ -24,8 +24,8 @@ __global__ void forward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_c
     id /= c;
     int b = id;
 
-    int w_offset = -pad;
-    int h_offset = -pad;
+    int w_offset = -pad / 2;
+    int h_offset = -pad / 2;
 
     int out_index = j + w*(i + h*(k + c*b));
     float max = -INFINITY;
@@ -49,8 +49,8 @@ __global__ void forward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_c
 
 __global__ void backward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_c, int stride, int size, int pad, float *delta, float *prev_delta, int *indexes)
 {
-    int h = (in_h + 2*pad)/stride;
-    int w = (in_w + 2*pad)/stride;
+    int h = (in_h + pad - size) / stride + 1;
+    int w = (in_w + pad - size) / stride + 1;
     int c = in_c;
     int area = (size-1)/stride;
 
@@ -66,8 +66,8 @@ __global__ void backward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_
     id /= in_c;
     int b = id;
 
-    int w_offset = -pad;
-    int h_offset = -pad;
+    int w_offset = -pad / 2;
+    int h_offset = -pad / 2;
 
     float d = 0;
     int l, m;
@@ -86,6 +86,31 @@ __global__ void backward_maxpool_layer_kernel(int n, int in_h, int in_w, int in_
 
 extern "C" void forward_maxpool_layer_gpu(maxpool_layer layer, network_state state)
 {
+
+#ifdef CUDNN
+    if (!state.train && layer.stride == layer.size) {
+        // cudnnPoolingBackward
+        cudnnStatus_t maxpool_status;
+
+        float alpha = 1, beta = 0;
+        maxpool_status = cudnnPoolingForward(
+            cudnn_handle(),
+            layer.poolingDesc,
+            &alpha,
+            layer.srcTensorDesc,
+            state.input,
+            &beta,
+            layer.dstTensorDesc,
+            layer.output_gpu);
+
+        //maxpool_status = cudnnDestroyPoolingDescriptor(poolingDesc);
+        //cudnnDestroyTensorDescriptor(layer.srcTensorDesc);
+        //cudnnDestroyTensorDescriptor(layer.dstTensorDesc);
+
+        return;
+    }
+#endif
+
     int h = layer.out_h;
     int w = layer.out_w;
     int c = layer.c;

@@ -17,7 +17,8 @@ convnet/
 decaf/
 submission/
 cfg/
-darknet
+build/darknet/*
+!build/darknet/YoloWrapper.cs
 .fuse*
 validation/
 partial_weights/

@@ -83,12 +83,14 @@ struct layer{
     int side;
     int stride;
     int reverse;
+	int spatial;
     int pad;
     int sqrt;
     int flip;
     int index;
     int binary;
     int xnor;
+    int use_bin_output;
     int steps;
     int hidden;
     float dot;
@@ -99,6 +101,7 @@ struct layer{
     float shift;
     float ratio;
 	int focal_loss;
+	int noloss;
     int softmax;
     int classes;
     int coords;
@@ -179,11 +182,25 @@ struct layer{
     float *weights;
     float *weight_updates;
 
+    char *align_bit_weights_gpu;
+    float *mean_arr_gpu;
+    float *align_workspace_gpu;
+    float *transposed_align_workspace_gpu;
+    int align_workspace_size;
+
+    char *align_bit_weights;
+    float *mean_arr;
+    int align_bit_weights_size;
+    int lda_align;
+    int new_lda;
+    int bit_align;
+
     float *col_image;
     int   * input_layers;
     int   * input_sizes;
     float * delta;
     float * output;
+	float * loss;
     float * squared;
     float * norms;
 
@@ -275,6 +292,7 @@ struct layer{
     float * scale_updates_gpu;
 
     float * output_gpu;
+	float * loss_gpu;
     float * delta_gpu;
     float * rand_gpu;
     float * squared_gpu;
@@ -289,6 +307,7 @@ struct layer{
     cudnnConvolutionFwdAlgo_t fw_algo;
     cudnnConvolutionBwdDataAlgo_t bd_algo;
     cudnnConvolutionBwdFilterAlgo_t bf_algo;
+    cudnnPoolingDescriptor_t poolingDesc;
     #endif
     #endif
 };
